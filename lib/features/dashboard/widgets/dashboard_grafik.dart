@@ -25,17 +25,10 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
 
     return Container(
       width: double.infinity,
-      padding: const EdgeInsets.all(20),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
         color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black.withOpacity(0.05),
-            blurRadius: 20,
-            offset: const Offset(0, 10),
-          ),
-        ],
+        borderRadius: BorderRadius.circular(20),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
@@ -44,21 +37,27 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
           const Text(
             'Grafik Penjualan',
             style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.bold,
-              color: Color(0xFF5D4037),
+              fontFamily: 'Poppins',
+              fontSize: 20,
+              fontWeight: FontWeight.w900,
+              color: Color.fromRGBO(107, 79, 63, 1),
             ),
           ),
-          const SizedBox(height: 4),
+          const SizedBox(height: 2),
           Text(
             'Performa Penjualan Bulan Ini',
-            style: TextStyle(fontSize: 13, color: Colors.brown.shade600),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 13,
+              color: Color.fromRGBO(198, 165, 128, 1),
+            ),
           ),
-          const SizedBox(height: 20),
+          const SizedBox(height: 12),
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+            width: double.infinity,
+            padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 7),
             decoration: BoxDecoration(
-              color: const Color(0xFFF5E6D3),
+              color: const Color.fromRGBO(246, 231, 212, 1),
               borderRadius: BorderRadius.circular(20),
             ),
             child: Row(
@@ -71,6 +70,7 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
                     setState(() => isWeekly = true);
                   },
                 ),
+                const SizedBox(width: 5),
                 _tabButton(
                   label: 'Bulanan',
                   selected: !isWeekly,
@@ -81,7 +81,7 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
               ],
             ),
           ),
-          const SizedBox(height: 24),
+          const SizedBox(height: 20),
           SizedBox(
             height: 220,
             child: BarChart(
@@ -108,8 +108,10 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
                           child: Text(
                             '${value.toInt()}jt',
                             style: const TextStyle(
-                              fontSize: 11,
-                              color: Color(0xFF8D6E63),
+                              fontFamily: 'Poppins',
+                              fontSize: 12,
+                              color: Color.fromRGBO(139, 111, 71, 1),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         );
@@ -128,9 +130,10 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
                           child: Text(
                             labels[i],
                             style: const TextStyle(
+                              fontFamily: 'Poppins',
                               fontSize: 12,
-                              color: Color(0xFF8D6E63),
-                              fontWeight: FontWeight.w600,
+                              color: Color.fromRGBO(217, 160, 91, 1),
+                              fontWeight: FontWeight.w700,
                             ),
                           ),
                         );
@@ -150,16 +153,16 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
                         width: 28,
                         gradient: const LinearGradient(
                           colors: [
-                            Color(0xFFBCAAA4),
-                            Color(0xFF8D6E63),
-                            Color(0xFF5D4037),
+                            Color.fromRGBO(246, 231, 212, 1),
+                            Color.fromRGBO(249, 216, 208, 1),
+                            Color.fromRGBO(255, 227, 191, 1),
                           ],
                           begin: Alignment.topCenter,
                           end: Alignment.bottomCenter,
                         ),
                         borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(8),
-                          topRight: Radius.circular(8),
+                          topLeft: Radius.circular(10),
+                          topRight: Radius.circular(10),
                         ),
                         backDrawRodData: BackgroundBarChartRodData(
                           show: true,
@@ -177,25 +180,37 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
           const SizedBox(height: 24),
 
           Container(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
             decoration: BoxDecoration(
-              color: const Color(0xFFFFF3E0),
-              borderRadius: BorderRadius.circular(16),
+              color: const Color.fromRGBO(246, 231, 212, 1),
+              borderRadius: BorderRadius.circular(10),
             ),
             child: Row(
               children: [
                 Icon(
                   Icons.trending_up,
-                  color: Colors.orange.shade700,
+                  color: Color.fromRGBO(217, 160, 91, 1),
                   size: 20,
                 ),
                 const SizedBox(width: 8),
-                Text(
-                  'Penjualan meningkat +24%\ndari periode sebelumnya',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.orange.shade800,
-                    fontWeight: FontWeight.w600,
+                RichText(
+                  text: TextSpan(
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color: Color.fromRGBO(107, 79, 63, 1),
+                      fontWeight: FontWeight.w500,
+                    ),
+                    children: const [
+                      TextSpan(text: 'Penjualan meningkat '),
+                      TextSpan(
+                        text: '+24%',
+                        style: TextStyle(
+                          color: Color.fromRGBO(217, 160, 91, 1),
+                        ),
+                      ),
+                      TextSpan(text: '\ndari periode sebelumnya'),
+                    ],
                   ),
                 ),
               ],
@@ -215,17 +230,18 @@ class _DashboardChartWidgetState extends State<DashboardChartWidget> {
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 200),
-        padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 8),
+        padding: const EdgeInsets.symmetric(horizontal: 25, vertical: 6),
         decoration: BoxDecoration(
-          color: selected ? const Color(0xFFD7CCC8) : Colors.transparent,
-          borderRadius: BorderRadius.circular(16),
+          color: selected ? const Color.fromRGBO(217, 160, 91, 1): Colors.transparent,
+          borderRadius: BorderRadius.circular(15),
         ),
         child: Text(
           label,
           style: TextStyle(
+            fontFamily: 'Poppins',
             fontSize: 13,
             fontWeight: FontWeight.w600,
-            color: selected ? const Color(0xFF5D4037) : const Color(0xFF8D6E63),
+            color: selected ? Colors.white : Colors.black
           ),
         ),
       ),

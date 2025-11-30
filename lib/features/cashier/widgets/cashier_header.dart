@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+import '../../profile/profile_page.dart';
+
 class CashierHeader extends StatelessWidget {
   final VoidCallback onMenuTap;
 
@@ -21,10 +23,20 @@ class CashierHeader extends StatelessWidget {
               ),
             ),
             const Spacer(),
-            const Icon(
-              Icons.person,
-              size: 30,
-              color: Color.fromRGBO(198, 165, 128, 1),
+            GestureDetector(
+              onTap: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => ProfilePage(onMenuTap: () {}),
+                  ),
+                );
+              },
+              child: const Icon(
+                Icons.person,
+                size: 30,
+                color: Color.fromRGBO(198, 165, 128, 1),
+              ),
             ),
           ],
         ),

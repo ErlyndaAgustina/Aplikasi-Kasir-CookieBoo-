@@ -13,6 +13,7 @@ class RingkasanCard extends StatelessWidget {
           subtitle: "15 Transaksi",
           growth: "+18% dari kemarin",
           icon: Icons.cookie_outlined,
+          iconBg: Color.fromRGBO(217, 160, 91, 1),
         ),
         DashboardCard(
           title: "Pendapatan Minggu Ini",
@@ -20,12 +21,14 @@ class RingkasanCard extends StatelessWidget {
           subtitle: "87 Transaksi",
           growth: "+20% dari minggu lalu",
           icon: Icons.trending_up,
+          iconBg: Color.fromRGBO(198, 165, 128, 1),
         ),
         DashboardCard(
           title: "Total Stok Produk",
           value: "247 Box",
           subtitle: "12 Varian Cookies",
           icon: Icons.inventory_2_outlined,
+          iconBg: Color.fromRGBO(139, 111, 71, 1),
         ),
         DashboardCard(
           title: "Pelanggan Aktif",
@@ -33,15 +36,13 @@ class RingkasanCard extends StatelessWidget {
           subtitle: "Member setia",
           growth: "+5% member baru",
           icon: Icons.people_outline,
+          iconBg: Color.fromRGBO(198, 165, 128, 1),
         ),
       ],
     );
   }
 }
 
-/* ----------------------------------------------------------
-   REUSABLE COMPONENT — Dashboard Card
------------------------------------------------------------ */
 
 class DashboardCard extends StatelessWidget {
   final String title;
@@ -49,6 +50,7 @@ class DashboardCard extends StatelessWidget {
   final String subtitle;
   final String? growth;
   final IconData icon;
+  final Color iconBg;
 
   const DashboardCard({
     super.key,
@@ -57,22 +59,29 @@ class DashboardCard extends StatelessWidget {
     required this.subtitle,
     this.growth,
     required this.icon,
+    required this.iconBg,
   });
 
   @override
   Widget build(BuildContext context) {
     return Container(
-      margin: const EdgeInsets.only(bottom: 18),
-      padding: const EdgeInsets.all(18),
+      margin: const EdgeInsets.only(bottom: 15),
+      padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(18),
+        gradient: const LinearGradient(
+          colors: [Colors.white, Color.fromRGBO(246, 231, 212, 1)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+          stops: [0.0, 0.95],
+        ),
+        borderRadius: BorderRadius.circular(15),
+        border: Border.all(color: Color.fromRGBO(238, 215, 190, 1)),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.05),
+            color: Colors.black.withOpacity(0.2),
             spreadRadius: 1,
-            blurRadius: 10,
-            offset: const Offset(0, 3),
+            blurRadius: 5,
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -86,28 +95,28 @@ class DashboardCard extends StatelessWidget {
                   title,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: Color(0xFF7D6653),
+                    fontSize: 12,
+                    color: Color.fromRGBO(107, 79, 63, 1),
                     fontWeight: FontWeight.w500,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 3),
                 Text(
                   value,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 22,
-                    color: Color(0xFF4B3426),
-                    fontWeight: FontWeight.w700,
+                    fontSize: 20,
+                    color: Color.fromRGBO(107, 79, 63, 1),
+                    fontWeight: FontWeight.w900,
                   ),
                 ),
-                const SizedBox(height: 6),
+                const SizedBox(height: 4),
                 Text(
                   subtitle,
                   style: const TextStyle(
                     fontFamily: 'Poppins',
-                    fontSize: 13,
-                    color: Color(0xFF7D6653),
+                    fontSize: 12,
+                    color: Color.fromRGBO(198, 165, 128, 1),
                   ),
                 ),
 
@@ -117,16 +126,16 @@ class DashboardCard extends StatelessWidget {
                     children: [
                       const Icon(
                         Icons.arrow_upward,
-                        size: 16,
-                        color: Color(0xFF34A853),
+                        size: 15,
+                        color: Color.fromRGBO(217, 160, 91, 1),
                       ),
                       Text(
                         growth!,
                         style: const TextStyle(
                           fontFamily: 'Poppins',
-                          color: Color(0xFF34A853),
-                          fontSize: 12,
-                          fontWeight: FontWeight.w600,
+                          color: Color.fromRGBO(217, 160, 91, 1),
+                          fontSize: 10,
+                          fontWeight: FontWeight.w500,
                         ),
                       ),
                     ],
@@ -139,10 +148,10 @@ class DashboardCard extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(16),
             decoration: BoxDecoration(
-              color: const Color(0xFFF3D9B0),
+              color: iconBg,
               borderRadius: BorderRadius.circular(16),
             ),
-            child: Icon(icon, color: const Color(0xFF7D6653), size: 32),
+            child: Icon(icon, color: Colors.white, size: 32),
           ),
         ],
       ),

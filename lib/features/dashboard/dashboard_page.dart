@@ -28,9 +28,9 @@ class _DashboardPageState extends State<DashboardPage> {
               DashboardHeader(onMenuTap: widget.onMenuTap),
               const SizedBox(height: 12),
               RingkasanCard(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 15),
               DashboardChartWidget(),
-              const SizedBox(height: 12),
+              const SizedBox(height: 30),
               RecentTransactionsCard()
             ],
           ),
