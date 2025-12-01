@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:flutter/services.dart';
 
 class EditPelangganPopup extends StatefulWidget {
   final Map<String, dynamic> data;
@@ -19,24 +20,29 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
   String? membership;
   final supabase = Supabase.instance.client;
 
-  final List<String> membershipList = [
-    'Platinum',
-    'Gold',
-    'Silver',
-  ];
+  final List<String> membershipList = ['Platinum', 'Gold', 'Silver'];
 
   @override
   void initState() {
     super.initState();
 
-    namaController = TextEditingController(text: widget.data['nama']?.toString() ?? '');
-    emailController = TextEditingController(text: widget.data['email']?.toString() ?? '');
-    telpController = TextEditingController(text: widget.data['nomor_tlpn']?.toString() ?? '');
-    alamatController = TextEditingController(text: widget.data['alamat']?.toString() ?? '');
+    namaController = TextEditingController(
+      text: widget.data['nama']?.toString() ?? '',
+    );
+    emailController = TextEditingController(
+      text: widget.data['email']?.toString() ?? '',
+    );
+    telpController = TextEditingController(
+      text: widget.data['nomor_tlpn']?.toString() ?? '',
+    );
+    alamatController = TextEditingController(
+      text: widget.data['alamat']?.toString() ?? '',
+    );
+
     final dbMembership = widget.data['membership']?.toString().toLowerCase();
     membership = membershipList.firstWhere(
       (e) => e.toLowerCase() == dbMembership,
-      orElse: () => 'Silver', 
+      orElse: () => 'Silver',
     );
   }
 
@@ -50,29 +56,64 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
   }
 
   Future<void> _simpanPerubahan() async {
-    if (namaController.text.trim().isEmpty ||
-        emailController.text.trim().isEmpty ||
-        telpController.text.trim().isEmpty ||
-        membership == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Harap lengkapi semua field wajib (*)')),
-      );
+    final nama = namaController.text.trim();
+    final email = emailController.text.trim().toLowerCase();
+    final telp = telpController.text.trim();
+    final cleanedTelp = telp.replaceAll(RegExp(r'\D'), '');
+    if (nama.isEmpty) {
+      _showError("Nama tidak boleh kosong");
+      return;
+    }
+
+    if (email.isEmpty) {
+      _showError("Email tidak boleh kosong");
+      return;
+    }
+
+    if (!email.endsWith("@gmail.com")) {
+      _showError("Email harus menggunakan domain @gmail.com");
+      return;
+    }
+
+    if (membership == null || membership!.isEmpty) {
+      _showError("Status membership tidak boleh kosong");
+      return;
+    }
+
+    if (telp.isEmpty) {
+      _showError("Nomor telepon tidak boleh kosong");
+      return;
+    }
+
+    if (!RegExp(r'^[0-9]+$').hasMatch(telp)) {
+      _showError("Nomor telepon harus berupa angka");
+      return;
+    }
+
+    if (cleanedTelp.length < 12) {
+      _showError("Nomor telepon minimal 12 angka");
       return;
     }
 
     final String dbMembership = membership!.toLowerCase();
 
     try {
-      await supabase.from('pelanggan').update({
-        'nama': namaController.text.trim(),
-        'email': emailController.text.trim().toLowerCase(),
-        'nomor_tlpn': telpController.text.replaceAll(RegExp(r'\D'), ''),
-        'alamat': alamatController.text.trim().isEmpty ? null : alamatController.text.trim(),
-        'membership': dbMembership,
-      }).eq('id', widget.data['id']);
+      await supabase
+          .from('pelanggan')
+          .update({
+            'nama': nama,
+            'email': email,
+            'nomor_tlpn': cleanedTelp,
+            'alamat': alamatController.text.trim().isEmpty
+                ? null
+                : alamatController.text.trim(),
+            'membership': dbMembership,
+          })
+          .eq('id', widget.data['id']);
 
       if (!mounted) return;
       Navigator.pop(context);
+
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(
           content: Text('Data pelanggan berhasil diperbarui!'),
@@ -81,10 +122,14 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
       );
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Gagal menyimpan: $e')),
-      );
+      _showError("Gagal menyimpan: $e");
     }
+  }
+
+  void _showError(String msg) {
+    ScaffoldMessenger.of(
+      context,
+    ).showSnackBar(SnackBar(content: Text(msg), backgroundColor: Colors.red));
   }
 
   @override
@@ -116,17 +161,29 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
                       color: Colors.white.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.edit, size: 18, color: Colors.white),
+                    child: const Icon(
+                      Icons.edit,
+                      size: 18,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: 7),
                   const Text(
                     'Edit Pelanggan',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.w700, color: Colors.white),
+                    style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
                   ),
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child: const Icon(Icons.close, color: Colors.white, size: 26),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
                 ],
               ),
@@ -139,11 +196,17 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     _label("Nama Lengkap *"),
-                    _field(controller: namaController, hint: "Contoh: Baskara El Patron."),
+                    _field(
+                      controller: namaController,
+                      hint: "Contoh: Baskara El Patron.",
+                    ),
 
                     const SizedBox(height: 16),
                     _label("Email *"),
-                    _field(controller: emailController, hint: "baskara@gmail.com"),
+                    _field(
+                      controller: emailController,
+                      hint: "baskara@gmail.com",
+                    ),
 
                     const SizedBox(height: 16),
                     _label("Status Membership *"),
@@ -180,12 +243,22 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
                           backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
-                          side: const BorderSide(color: Color.fromRGBO(217, 160, 91, 1), width: 1.6),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
+                          side: const BorderSide(
+                            color: Color.fromRGBO(217, 160, 91, 1),
+                            width: 1.6,
+                          ),
                         ),
                         child: const Text(
                           "Batal",
-                          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w600, color: Color.fromRGBO(107, 79, 63, 1), fontSize: 18),
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w600,
+                            color: Color.fromRGBO(107, 79, 63, 1),
+                            fontSize: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -195,14 +268,26 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
                     child: SizedBox(
                       height: 40,
                       child: ElevatedButton(
-                        onPressed: _simpanPerubahan, 
+                        onPressed: _simpanPerubahan,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color.fromRGBO(217, 160, 91, 1),
-                          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+                          backgroundColor: const Color.fromRGBO(
+                            217,
+                            160,
+                            91,
+                            1,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(15),
+                          ),
                         ),
                         child: const Text(
                           "Simpan",
-                          style: TextStyle(fontFamily: 'Poppins', fontWeight: FontWeight.w700, color: Colors.white, fontSize: 18),
+                          style: TextStyle(
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                            fontSize: 18,
+                          ),
                         ),
                       ),
                     ),
@@ -219,7 +304,12 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
   Widget _label(String text) {
     return Text(
       text,
-      style: const TextStyle(fontFamily: 'Poppins', fontSize: 15, fontWeight: FontWeight.w600, color: Color.fromRGBO(139, 111, 71, 1)),
+      style: const TextStyle(
+        fontFamily: 'Poppins',
+        fontSize: 15,
+        fontWeight: FontWeight.w600,
+        color: Color.fromRGBO(139, 111, 71, 1),
+      ),
     );
   }
 
@@ -233,23 +323,43 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
       controller: controller,
       keyboardType: keyboard,
       maxLines: maxLines,
+      inputFormatters: keyboard == TextInputType.number
+          ? [FilteringTextInputFormatter.digitsOnly]
+          : null,
       decoration: InputDecoration(
-        hintStyle: const TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w500, color: Color.fromRGBO(133, 131, 145, 1)),
+        hintStyle: const TextStyle(
+          fontFamily: 'Poppins',
+          fontSize: 14,
+          fontWeight: FontWeight.w500,
+          color: Color.fromRGBO(133, 131, 145, 1),
+        ),
         hintText: hint,
         filled: true,
         fillColor: Colors.white,
-        contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color.fromRGBO(228, 212, 196, 1), width: 2),
+          borderSide: const BorderSide(
+            color: Color.fromRGBO(228, 212, 196, 1),
+            width: 2,
+          ),
         ),
         enabledBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color.fromRGBO(228, 212, 196, 1), width: 2),
+          borderSide: const BorderSide(
+            color: Color.fromRGBO(228, 212, 196, 1),
+            width: 2,
+          ),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
-          borderSide: const BorderSide(color: Color.fromRGBO(217, 160, 91, 1), width: 2),
+          borderSide: const BorderSide(
+            color: Color.fromRGBO(217, 160, 91, 1),
+            width: 2,
+          ),
         ),
       ),
     );
@@ -261,7 +371,10 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
       decoration: BoxDecoration(
         color: Colors.white,
         borderRadius: BorderRadius.circular(15),
-        border: Border.all(color: const Color.fromRGBO(228, 212, 196, 1), width: 2),
+        border: Border.all(
+          color: const Color.fromRGBO(228, 212, 196, 1),
+          width: 2,
+        ),
       ),
       child: DropdownButtonHideUnderline(
         child: DropdownButton<String>(
@@ -269,17 +382,32 @@ class _EditPelangganPopupState extends State<EditPelangganPopup> {
           value: membership,
           hint: const Text(
             "Pilih Membership",
-            style: TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w500, color: Color.fromRGBO(133, 131, 145, 1)),
+            style: TextStyle(
+              fontFamily: 'Poppins',
+              fontSize: 14,
+              fontWeight: FontWeight.w500,
+              color: Color.fromRGBO(133, 131, 145, 1),
+            ),
           ),
-          icon: const Icon(Icons.keyboard_arrow_down_rounded, color: Color(0xFFB7ADA4)),
+          icon: const Icon(
+            Icons.keyboard_arrow_down_rounded,
+            color: Color(0xFFB7ADA4),
+          ),
           items: membershipList
-              .map((e) => DropdownMenuItem(
-                    value: e,
-                    child: Text(
-                      e,
-                      style: const TextStyle(fontFamily: 'Poppins', fontSize: 14, fontWeight: FontWeight.w600, color: Color.fromRGBO(139, 111, 71, 1)),
+              .map(
+                (e) => DropdownMenuItem(
+                  value: e,
+                  child: Text(
+                    e,
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color.fromRGBO(139, 111, 71, 1),
                     ),
-                  ))
+                  ),
+                ),
+              )
               .toList(),
           onChanged: (v) => setState(() => membership = v),
         ),

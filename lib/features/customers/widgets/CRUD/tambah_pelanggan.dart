@@ -19,11 +19,7 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
 
   String? membership;
 
-  final List<String> membershipList = [
-    'Platinum',
-    'Gold',
-    'Silver',
-  ];
+  final List<String> membershipList = ['Platinum', 'Gold', 'Silver'];
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -38,7 +34,9 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
     final nama = namaController.text.trim();
     final email = emailController.text.trim();
     final telp = telpController.text.replaceAll(RegExp(r'\D'), '');
-    final alamat = alamatController.text.trim().isEmpty ? null : alamatController.text.trim();
+    final alamat = alamatController.text.trim().isEmpty
+        ? null
+        : alamatController.text.trim();
 
     final String dbMembership = membership!.toLowerCase();
 
@@ -58,9 +56,9 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
       );
     } on PostgrestException catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text(e.message)),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(e.message)));
     } catch (_) {
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
@@ -87,9 +85,7 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
               padding: const EdgeInsets.symmetric(horizontal: 20),
               decoration: const BoxDecoration(
                 color: Color.fromRGBO(217, 160, 91, 1),
-                borderRadius: BorderRadius.vertical(
-                  top: Radius.circular(20),
-                ),
+                borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
               ),
               child: Row(
                 children: [
@@ -100,8 +96,11 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                       color: Colors.white.withOpacity(0.4),
                       borderRadius: BorderRadius.circular(10),
                     ),
-                    child: const Icon(Icons.person_add,
-                        size: 18, color: Colors.white),
+                    child: const Icon(
+                      Icons.person_add,
+                      size: 18,
+                      color: Colors.white,
+                    ),
                   ),
                   const SizedBox(width: 7),
                   const Text(
@@ -115,8 +114,11 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                   const Spacer(),
                   GestureDetector(
                     onTap: () => Navigator.pop(context),
-                    child:
-                        const Icon(Icons.close, color: Colors.white, size: 26),
+                    child: const Icon(
+                      Icons.close,
+                      color: Colors.white,
+                      size: 26,
+                    ),
                   ),
                 ],
               ),
@@ -134,7 +136,9 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                       _textField(
                         controller: namaController,
                         hint: "Contoh: Baskara El Patron.",
-                        validator: (v) => v?.trim().isEmpty ?? true ? 'Nama wajib diisi' : null,
+                        validator: (v) => v?.trim().isEmpty ?? true
+                            ? 'Nama wajib diisi'
+                            : null,
                       ),
 
                       const SizedBox(height: 16),
@@ -145,8 +149,14 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                         hint: "baskara@gmail.com",
                         keyboard: TextInputType.emailAddress,
                         validator: (v) {
-                          if (v?.trim().isEmpty ?? true) return 'Email wajib diisi';
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(v!)) {
+                          final value = v?.trim() ?? '';
+                          if (value.isEmpty) return 'Email wajib diisi';
+                          if (!value.endsWith('@gmail.com')) {
+                            return 'Email harus menggunakan @gmail.com';
+                          }
+                          if (!RegExp(
+                            r'^[\w\.-]+@gmail\.com$',
+                          ).hasMatch(value)) {
                             return 'Format email tidak valid';
                           }
                           return null;
@@ -166,10 +176,15 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                         hint: "098263828192",
                         keyboard: TextInputType.number,
                         validator: (v) {
-                          if (v?.trim().isEmpty ?? true) return 'No telepon wajib diisi';
-                          if (!RegExp(r'^\d{10,15}$').hasMatch(v!.replaceAll(RegExp(r'\D'), ''))) {
-                            return 'No telepon tidak valid';
+                          final value = v?.replaceAll(RegExp(r'\D'), '') ?? '';
+                          if (value.isEmpty) return 'No telepon wajib diisi';
+                          if (!RegExp(r'^\d+$').hasMatch(value)) {
+                            return 'No telepon hanya boleh berisi angka';
                           }
+                          if (value.length < 12)
+                            return 'No telepon minimal 12 angka';
+                          if (value.length > 15)
+                            return 'No telepon maksimal 15 angka';
                           return null;
                         },
                       ),
@@ -197,19 +212,20 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                       height: 40,
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
-                        style: OutlinedButton.styleFrom(
-                          backgroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(15),
-                          ),
-                        ).copyWith(
-                          side: MaterialStateProperty.all(
-                            const BorderSide(
-                              color: Color.fromRGBO(217, 160, 91, 1),
-                              width: 1.6,
+                        style:
+                            OutlinedButton.styleFrom(
+                              backgroundColor: Colors.white,
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(15),
+                              ),
+                            ).copyWith(
+                              side: MaterialStateProperty.all(
+                                const BorderSide(
+                                  color: Color.fromRGBO(217, 160, 91, 1),
+                                  width: 1.6,
+                                ),
+                              ),
                             ),
-                          ),
-                        ),
                         child: const Text(
                           "Batal",
                           style: TextStyle(
@@ -231,8 +247,12 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
                       child: ElevatedButton(
                         onPressed: _submit,
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color.fromRGBO(217, 160, 91, 1),
+                          backgroundColor: const Color.fromRGBO(
+                            217,
+                            160,
+                            91,
+                            1,
+                          ),
                           shape: RoundedRectangleBorder(
                             borderRadius: BorderRadius.circular(15),
                           ),
@@ -293,8 +313,10 @@ class _TambahPelangganPopupState extends State<TambahPelangganPopup> {
         hintText: hint,
         fillColor: Colors.white,
         filled: true,
-        contentPadding:
-            const EdgeInsets.symmetric(horizontal: 16, vertical: 13),
+        contentPadding: const EdgeInsets.symmetric(
+          horizontal: 16,
+          vertical: 13,
+        ),
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(16),
           borderSide: const BorderSide(

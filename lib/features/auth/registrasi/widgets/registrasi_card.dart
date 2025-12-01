@@ -12,8 +12,6 @@ class RegistrationCard extends StatefulWidget {
 class _RegistrationCardState extends State<RegistrationCard> {
   File? foto;
   final picker = ImagePicker();
-
-  // FORM CONTROLLERS
   final TextEditingController namaC = TextEditingController();
   final TextEditingController emailC = TextEditingController();
   final TextEditingController passC = TextEditingController();
@@ -62,7 +60,10 @@ class _RegistrationCardState extends State<RegistrationCard> {
                       ),
                       clipBehavior: Clip.antiAlias,
                       child: foto == null
-                          ? Image.asset("assets/images/profile.png", fit: BoxFit.cover)
+                          ? Image.asset(
+                              "assets/images/profile.png",
+                              fit: BoxFit.cover,
+                            )
                           : Image.file(foto!, fit: BoxFit.cover),
                     ),
 
@@ -84,7 +85,11 @@ class _RegistrationCardState extends State<RegistrationCard> {
                               ),
                             ],
                           ),
-                          child: const Icon(Icons.camera_alt, color: Colors.white, size: 20),
+                          child: const Icon(
+                            Icons.camera_alt,
+                            color: Colors.white,
+                            size: 20,
+                          ),
                         ),
                       ),
                     ),
@@ -93,8 +98,10 @@ class _RegistrationCardState extends State<RegistrationCard> {
               ),
 
               const SizedBox(height: 10),
-              const Text("Klik kamera untuk mengubah foto (opsional)",
-                  style: TextStyle(fontSize: 13, color: Colors.black54)),
+              const Text(
+                "Klik kamera untuk mengubah foto (opsional)",
+                style: TextStyle(fontSize: 13, color: Colors.black54),
+              ),
 
               const SizedBox(height: 25),
 
@@ -111,7 +118,13 @@ class _RegistrationCardState extends State<RegistrationCard> {
                   children: const [
                     Icon(Icons.work_outline, size: 16, color: Colors.black54),
                     SizedBox(width: 6),
-                    Text("Posisi *", style: TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+                    Text(
+                      "Posisi *",
+                      style: TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
                   ],
                 ),
               ),
@@ -122,14 +135,20 @@ class _RegistrationCardState extends State<RegistrationCard> {
                 decoration: InputDecoration(
                   filled: true,
                   fillColor: const Color(0xFFF7F7F7),
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 14,
+                    vertical: 10,
+                  ),
                   enabledBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
                     borderSide: BorderSide.none,
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(30),
-                    borderSide: const BorderSide(color: Color(0xFFDEB887), width: 1.3),
+                    borderSide: const BorderSide(
+                      color: Color(0xFFDEB887),
+                      width: 1.3,
+                    ),
                   ),
                 ),
                 items: const [
@@ -189,11 +208,12 @@ class _RegistrationCardState extends State<RegistrationCard> {
                   style: ElevatedButton.styleFrom(
                     backgroundColor: const Color(0xFFDEB887),
                     foregroundColor: Colors.white,
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(30)),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(30),
+                    ),
                     padding: const EdgeInsets.symmetric(vertical: 14),
                   ),
                   onPressed: () {
-                    // VALIDASI LOGIS
                     if (passC.text != confirmPassC.text) {
                       ScaffoldMessenger.of(context).showSnackBar(
                         const SnackBar(content: Text("Kata sandi tidak cocok")),
@@ -201,7 +221,20 @@ class _RegistrationCardState extends State<RegistrationCard> {
                       return;
                     }
                   },
-                  child: const Text("Buat Akun", style: TextStyle(fontSize: 15, fontWeight: FontWeight.w600)),
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(Icons.person_add, size: 20),
+                      SizedBox(width: 6),
+                      Text(
+                        "Buat Akun",
+                        style: TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ],
@@ -211,7 +244,6 @@ class _RegistrationCardState extends State<RegistrationCard> {
     );
   }
 
-  // INPUT FIELD
   Widget buildInput({
     required TextEditingController controller,
     required String label,
@@ -226,7 +258,10 @@ class _RegistrationCardState extends State<RegistrationCard> {
           children: [
             Icon(icon, size: 16, color: Colors.black54),
             const SizedBox(width: 6),
-            Text("$label *", style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500)),
+            Text(
+              "$label *",
+              style: const TextStyle(fontSize: 13, fontWeight: FontWeight.w500),
+            ),
           ],
         ),
         const SizedBox(height: 6),
@@ -238,14 +273,20 @@ class _RegistrationCardState extends State<RegistrationCard> {
             filled: true,
             fillColor: const Color(0xFFF7F7F7),
             hintText: hint,
-            contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 14,
+              vertical: 10,
+            ),
             enabledBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
               borderSide: BorderSide.none,
             ),
             focusedBorder: OutlineInputBorder(
               borderRadius: BorderRadius.circular(30),
-              borderSide: const BorderSide(color: Color(0xFFDEB887), width: 1.3),
+              borderSide: const BorderSide(
+                color: Color(0xFFDEB887),
+                width: 1.3,
+              ),
             ),
           ),
         ),

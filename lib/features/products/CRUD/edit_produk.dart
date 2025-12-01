@@ -50,6 +50,14 @@ class _EditProdukPopupState extends State<EditProdukPopup> {
     super.dispose();
   }
 
+  String? _validateNumber(String? v) {
+    if (v == null || v.isEmpty) return "Field wajib diisi";
+    if (double.tryParse(v.replaceAll(RegExp(r'[^0-9.]'), '')) == null) {
+      return "Wajib angka";
+    }
+    return null;
+  }
+
   @override
   Widget build(BuildContext context) {
     final maxHeight = MediaQuery.of(context).size.height * 0.9;
@@ -135,35 +143,43 @@ class _EditProdukPopupState extends State<EditProdukPopup> {
                         ),
                       ),
                       const SizedBox(height: 20),
+
                       _textField(
                         controller: namaCtrl,
                         label: "Nama Produk *",
                         hint: "Masukkan nama produk...",
                       ),
                       const SizedBox(height: 18),
+
                       _label("Kategori *"),
                       const SizedBox(height: 10),
                       _buildKategoriDropdown(),
                       const SizedBox(height: 18),
+
                       _textField(
                         controller: hargaCtrl,
                         label: "Harga (Rp) *",
                         hint: "Masukkan harga produk...",
                         keyboard: TextInputType.number,
+                        validator: _validateNumber,
                       ),
                       const SizedBox(height: 18),
+
                       _textField(
                         controller: stokCtrl,
                         label: "Stok (box) *",
                         hint: "Masukkan jumlah stok...",
                         keyboard: TextInputType.number,
+                        validator: _validateNumber,
                       ),
                       const SizedBox(height: 18),
+
                       _textField(
                         controller: stokMinCtrl,
                         label: "Stok Minimum *",
                         hint: "Masukkan stok minimum (minimal 10pcs)...",
                         keyboard: TextInputType.number,
+                        validator: _validateNumber,
                       ),
                     ],
                   ),
@@ -261,6 +277,7 @@ class _EditProdukPopupState extends State<EditProdukPopup> {
     required String hint,
     TextInputType keyboard = TextInputType.text,
     int maxLines = 1,
+    String? Function(String?)? validator,
   }) => Column(
     crossAxisAlignment: CrossAxisAlignment.start,
     children: [
@@ -270,8 +287,10 @@ class _EditProdukPopupState extends State<EditProdukPopup> {
         controller: controller,
         keyboardType: keyboard,
         maxLines: maxLines,
-        validator: (value) =>
-            (value == null || value.isEmpty) ? "Field wajib diisi" : null,
+        validator:
+            validator ??
+            (value) =>
+                (value == null || value.isEmpty) ? "Field wajib diisi" : null,
         decoration: InputDecoration(
           hintText: hint,
           hintStyle: const TextStyle(
@@ -402,10 +421,11 @@ class _EditProdukPopupState extends State<EditProdukPopup> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
     if (selectedKategori == null) {
       ScaffoldMessenger.of(
         context,
-      ).showSnackBar(const SnackBar(content: Text('Kategori harus dipilih')));
+      ).showSnackBar(const SnackBar(content: Text('Kategori wajib dipilih')));
       return;
     }
 

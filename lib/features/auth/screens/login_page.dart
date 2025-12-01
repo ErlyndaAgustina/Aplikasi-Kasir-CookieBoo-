@@ -14,7 +14,7 @@ class _LoginPageState extends State<LoginPage> {
   final passwordController = TextEditingController();
   String selectedRole = 'admin';
   bool isLoading = false;
-  bool _obscurePassword = true; 
+  bool _obscurePassword = true;
 
   Future<void> login() async {
     setState(() => isLoading = true);
@@ -35,12 +35,13 @@ class _LoginPageState extends State<LoginPage> {
         if (profile != null) {
           if (profile['role'] == selectedRole) {
             if (!mounted) return;
-            Navigator.pushReplacement(
+            Navigator.pushAndRemoveUntil(
               context,
               MaterialPageRoute(builder: (_) => const SidebarPage()),
+              (route) => false,
             );
           } else {
-            _showSnackbar('Role tidak sesuai', Colors.orange);
+            _showSnackbar('Role tidak sesuai dengan akun', Colors.orange);
           }
         } else {
           _showSnackbar('Profil tidak ditemukan', Colors.red);
@@ -48,15 +49,22 @@ class _LoginPageState extends State<LoginPage> {
       }
     } on AuthException catch (e) {
       final msg = e.message.toLowerCase();
+
       if (msg.contains('password')) {
         _showSnackbar('Password salah', Colors.red);
       } else if (msg.contains('user') || msg.contains('email')) {
-        _showSnackbar('Email / Username tidak ditemukan', Colors.red);
+        _showSnackbar('Email atau username tidak ditemukan', Colors.red);
       } else {
-        _showSnackbar('Login gagal: ${e.message}', Colors.red);
+        _showSnackbar(
+          'Login gagal. Periksa kembali email dan password.',
+          Colors.red,
+        );
       }
     } catch (e) {
-      _showSnackbar('Login gagal: $e', Colors.red);
+      _showSnackbar(
+        'Login gagal. Periksa kembali email dan password.',
+        Colors.red,
+      );
     } finally {
       setState(() => isLoading = false);
     }

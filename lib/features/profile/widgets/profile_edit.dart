@@ -94,144 +94,180 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
+  Color getRoleColor() {
+    if (role.toLowerCase() == "admin") {
+      return const Color.fromRGBO(219, 234, 254, 1);
+    }
+    return const Color.fromRGBO(254, 243, 199, 1);
+  }
+
+  Color getTextRoleColor() {
+    if (role.toLowerCase() == "admin") {
+      return const Color.fromRGBO(35, 65, 159, 1);
+    }
+    return const Color.fromRGBO(162, 79, 37, 1);
+  }
+
   @override
   Widget build(BuildContext context) {
     if (loading) {
       return const Scaffold(
-          body: Center(child: CircularProgressIndicator()));
+        body: Center(child: CircularProgressIndicator()),
+      );
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFFF7F2ED),
+      backgroundColor: const Color.fromRGBO(247, 242, 237, 1),
       body: Center(
-        child: Container(
-          width: 380,
-          margin: const EdgeInsets.symmetric(vertical: 20),
-          padding:
-              const EdgeInsets.symmetric(horizontal: 24, vertical: 26),
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(22),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withOpacity(0.08),
-                blurRadius: 12,
-                offset: const Offset(0, 6),
-              ),
-            ],
-          ),
-          child: SingleChildScrollView(
+        child: SingleChildScrollView(
+          child: Container(
+            margin: const EdgeInsets.all(18),
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 25),
+            width: 380,
+            decoration: BoxDecoration(
+              color: Colors.white,
+              borderRadius: BorderRadius.circular(22),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.2),
+                  blurRadius: 12,
+                  offset: const Offset(0, 4),
+                ),
+              ],
+            ),
             child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                const SizedBox(height: 10),
-
-                CircleAvatar(
-                  radius: 50,
-                  backgroundImage:
-                      const AssetImage("assets/images/profile.png"),
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(100),
+                  child: Image.asset(
+                    'assets/images/profile.png',
+                    width: 95,
+                    height: 95,
+                    fit: BoxFit.cover,
+                  ),
                 ),
 
-                const SizedBox(height: 14),
+                const SizedBox(height: 10),
 
                 Text(
                   nameController.text,
                   style: const TextStyle(
+                    fontFamily: 'Poppins',
                     fontSize: 20,
-                    fontWeight: FontWeight.w700,
-                    color: Color(0xFF3D2A13),
+                    fontWeight: FontWeight.w900,
+                    color: Color.fromRGBO(107, 79, 63, 1),
                   ),
                 ),
 
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
 
                 Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 10, vertical: 4),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 3),
                   decoration: BoxDecoration(
-                    color: const Color(0xFFCCE0FF),
-                    borderRadius: BorderRadius.circular(8),
+                    color: getRoleColor(),
+                    borderRadius: BorderRadius.circular(18),
+                    border: Border.all(
+                      color: getTextRoleColor(),
+                      width: 1,
+                    ),
                   ),
                   child: Text(
-                    role == "admin" ? "Admin" : "Kasir",
-                    style: const TextStyle(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Color(0xFF265FA3),
-                    ),
-                  ),
-                ),
-
-                const SizedBox(height: 16),
-
-                Container(
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 18, vertical: 7),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(25),
-                    border: Border.all(
-                      color: const Color(0xFFD9A05B),
-                      width: 1.4,
-                    ),
-                    color: const Color(0xFFFFF2E5),
-                  ),
-                  child: const Text(
-                    "✏️  Edit Profil",
+                    role,
                     style: TextStyle(
                       fontFamily: 'Poppins',
-                      color: Color(0xFF6B4F3F),
-                      fontWeight: FontWeight.w600,
+                      fontSize: 14,
+                      color: getTextRoleColor(),
+                      fontWeight: FontWeight.w800,
                     ),
                   ),
                 ),
 
-                const SizedBox(height: 22),
+                const SizedBox(height: 10),
+                Divider(color: const Color.fromRGBO(255, 227, 191, 1)),
+                const SizedBox(height: 18),
 
-                fieldLabel(Icons.person_outline, "Nama Lengkap"),
-                textField(nameController),
-                const SizedBox(height: 16),
+                editableCard(
+                  icon: Icons.person_outline,
+                  title: "Nama Lengkap",
+                  child: TextField(
+                    controller: nameController,
+                    decoration: fieldInputDecoration(),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-                fieldLabel(Icons.badge_outlined, "Posisi"),
-                dropdownRole(),
-                const SizedBox(height: 16),
+                editableCard(
+                  icon: Icons.work_outline,
+                  title: "Posisi",
+                  child: DropdownButtonHideUnderline(
+                    child: DropdownButton<String>(
+                      value: role,
+                      items: const [
+                        DropdownMenuItem(value: "admin", child: Text("Admin")),
+                        DropdownMenuItem(value: "kasir", child: Text("Kasir")),
+                      ],
+                      onChanged: (v) => setState(() => role = v!),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-                fieldLabel(Icons.email_outlined, "Email"),
-                textField(emailController),
-                const SizedBox(height: 16),
+                editableCard(
+                  icon: Icons.email_outlined,
+                  title: "Alamat Email",
+                  child: TextField(
+                    controller: emailController,
+                    decoration: fieldInputDecoration(),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-                fieldLabel(Icons.phone_outlined, "Nomor Telepon"),
-                textField(nomorController),
-                const SizedBox(height: 16),
+                editableCard(
+                  icon: Icons.phone_outlined,
+                  title: "Nomor Telepon",
+                  child: TextField(
+                    controller: nomorController,
+                    decoration: fieldInputDecoration(),
+                  ),
+                ),
+                const SizedBox(height: 12),
 
-                fieldLabel(Icons.home_outlined, "Alamat"),
-                textField(alamatController, maxLines: 2),
+                editableCard(
+                  icon: Icons.home_outlined,
+                  title: "Alamat",
+                  child: TextField(
+                    controller: alamatController,
+                    maxLines: 2,
+                    decoration: fieldInputDecoration(),
+                  ),
+                ),
 
-                const SizedBox(height: 30),
+                const SizedBox(height: 28),
 
                 Row(
-                  mainAxisAlignment:
-                      MainAxisAlignment.spaceBetween,
+                  mainAxisAlignment: MainAxisAlignment.spaceBetween,
                   children: [
                     SizedBox(
-                      width: 140,
+                      width: 145,
                       height: 46,
                       child: OutlinedButton(
                         onPressed: () => Navigator.pop(context),
                         style: OutlinedButton.styleFrom(
-                          foregroundColor:
-                              const Color(0xFF7A6A58),
+                          foregroundColor: const Color.fromRGBO(107, 79, 63, 1),
                           side: const BorderSide(
-                            color: Color(0xFFC7B9A8),
-                            width: 1,
+                            color: Color.fromRGBO(217, 160, 91, 1),
+                            width: 1.2,
                           ),
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: const Text(
                           "Batal",
                           style: TextStyle(
-                            fontWeight: FontWeight.w600,
+                            fontFamily: 'Poppins',
+                            fontWeight: FontWeight.w700,
                             fontSize: 16,
                           ),
                         ),
@@ -239,7 +275,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
                     ),
 
                     SizedBox(
-                      width: 140,
+                      width: 145,
                       height: 46,
                       child: ElevatedButton(
                         onPressed: () async {
@@ -247,44 +283,36 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                           if (!mounted) return;
 
-                          if (success) {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    "Profil berhasil diperbarui"),
+                          ScaffoldMessenger.of(context).showSnackBar(
+                            SnackBar(
+                              content: Text(
+                                success
+                                    ? "Profil berhasil diperbarui"
+                                    : "Gagal memperbarui profil",
                               ),
-                            );
-                            Navigator.pop(context);
-                          } else {
-                            ScaffoldMessenger.of(context)
-                                .showSnackBar(
-                              const SnackBar(
-                                content: Text(
-                                    "Gagal memperbarui profil"),
-                              ),
-                            );
-                          }
+                            ),
+                          );
+
+                          if (success) Navigator.pop(context);
                         },
                         style: ElevatedButton.styleFrom(
-                          backgroundColor:
-                              const Color(0xFFD6A96D),
+                          backgroundColor: const Color.fromRGBO(214, 169, 109, 1),
                           foregroundColor: Colors.white,
                           elevation: 0,
                           shape: RoundedRectangleBorder(
-                            borderRadius:
-                                BorderRadius.circular(14),
+                            borderRadius: BorderRadius.circular(16),
                           ),
                         ),
                         child: const Text(
                           "Simpan",
                           style: TextStyle(
+                            fontFamily: 'Poppins',
                             fontSize: 16,
                             fontWeight: FontWeight.w700,
                           ),
                         ),
                       ),
-                    )
+                    ),
                   ],
                 ),
 
@@ -297,59 +325,53 @@ class _EditProfilePageState extends State<EditProfilePage> {
     );
   }
 
-  Widget fieldLabel(IconData icon, String text) {
-    return Row(
-      children: [
-        Icon(icon, size: 18, color: const Color(0xFF7A6A58)),
-        const SizedBox(width: 6),
-        Text(
-          text,
-          style: const TextStyle(
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Color(0xFF7A6A58),
-          ),
-        ),
-      ],
-    );
-  }
-
-  Widget textField(TextEditingController c, {int maxLines = 1}) {
-    return TextField(
-      controller: c,
-      maxLines: maxLines,
-      decoration: InputDecoration(
-        filled: true,
-        fillColor: const Color(0xFFF7F2ED),
-        contentPadding: const EdgeInsets.symmetric(
-          horizontal: 14,
-          vertical: 12,
-        ),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
+  InputDecoration fieldInputDecoration() {
+    return InputDecoration(
+      filled: true,
+      fillColor: const Color.fromRGBO(255, 242, 229, 1),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
       ),
-      style: const TextStyle(fontSize: 14),
+      contentPadding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
     );
   }
 
-  Widget dropdownRole() {
+  Widget editableCard({
+    required IconData icon,
+    required String title,
+    required Widget child,
+  }) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14),
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
       decoration: BoxDecoration(
-        color: const Color(0xFFF7F2ED),
-        borderRadius: BorderRadius.circular(12),
+        color: const Color.fromRGBO(246, 231, 212, 1),
+        borderRadius: BorderRadius.circular(16),
       ),
-      child: DropdownButtonHideUnderline(
-        child: DropdownButton<String>(
-          value: role,
-          onChanged: (v) => setState(() => role = v!),
-          items: const [
-            DropdownMenuItem(value: "admin", child: Text("Admin")),
-            DropdownMenuItem(value: "kasir", child: Text("Kasir")),
-          ],
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: const Color.fromRGBO(139, 111, 71, 1), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color.fromRGBO(139, 111, 71, 1),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                child,
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }

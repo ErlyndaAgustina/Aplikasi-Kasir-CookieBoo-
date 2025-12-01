@@ -310,23 +310,6 @@ class _UpdateStokPopupState extends State<UpdateStokPopup> {
                         ],
                       ),
                     ),
-
-                    const SizedBox(height: 10),
-                    Align(
-                      alignment: Alignment.centerRight,
-                      child: TextButton(
-                        onPressed: () {},
-                        child: const Text(
-                          'Stok Masuk',
-                          style: TextStyle(
-                            fontFamily: 'Poppins',
-                            fontSize: 13,
-                            color: Color(0xFFD9A05B),
-                            decoration: TextDecoration.underline,
-                          ),
-                        ),
-                      ),
-                    ),
                   ],
                 ),
               ),
@@ -377,7 +360,7 @@ class _UpdateStokPopupState extends State<UpdateStokPopup> {
                         padding: const EdgeInsets.symmetric(vertical: 12),
                       ),
                       child: const Text(
-                        'Simpan Perubahan',
+                        'Simpan',
                         style: TextStyle(
                           fontFamily: 'Poppins',
                           fontSize: 16,

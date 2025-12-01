@@ -229,7 +229,9 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
                         label: "Harga (Rp) *",
                         hint: "Masukkan harga produk...",
                         keyboard: TextInputType.number,
+                        mustBeNumber: true,
                       ),
+
                       const SizedBox(height: 16),
 
                       _textField(
@@ -237,14 +239,17 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
                         label: "Stok (box) *",
                         hint: "Masukkan jumlah stok...",
                         keyboard: TextInputType.number,
+                        mustBeNumber: true,
                       ),
+
                       const SizedBox(height: 16),
 
                       _textField(
                         controller: stokMinCtrl,
                         label: "Stok Minimum *",
-                        hint: "Masukkan stok minimum (minimal 10pcs)...",
+                        hint: "Masukkan stok minimum",
                         keyboard: TextInputType.number,
+                        mustBeNumber: true,
                       ),
 
                       const SizedBox(height: 10),
@@ -334,6 +339,7 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
     required String hint,
     TextInputType? keyboard,
     int maxLines = 1,
+    bool mustBeNumber = false,
   }) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -352,8 +358,19 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
           controller: controller,
           keyboardType: keyboard,
           maxLines: maxLines,
-          validator: (value) =>
-              (value == null || value.isEmpty) ? "Field wajib diisi" : null,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return "Field wajib diisi";
+            }
+
+            if (mustBeNumber) {
+              final cleaned = value.replaceAll(',', '').replaceAll('.', '');
+              if (double.tryParse(cleaned) == null) {
+                return "Harus berupa angka";
+              }
+            }
+            return null;
+          },
           decoration: InputDecoration(
             hintText: hint,
             hintStyle: const TextStyle(
@@ -405,7 +422,13 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
-    if (selectedKategori == null) return;
+
+    if (selectedKategori == null) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Kategori tidak boleh kosong')),
+      );
+      return;
+    }
 
     setState(() => isSubmitting = true);
 
@@ -433,6 +456,7 @@ class _TambahProdukPopupState extends State<TambahProdukPopup> {
           0;
       final stok = int.tryParse(stokCtrl.text) ?? 0;
       final stokMinimum = int.tryParse(stokMinCtrl.text) ?? 10;
+
       await supabase.from('produk').insert({
         'nama_produk': namaCtrl.text,
         'harga': harga,

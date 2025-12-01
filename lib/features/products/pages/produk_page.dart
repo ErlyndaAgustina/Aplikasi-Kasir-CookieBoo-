@@ -18,8 +18,7 @@ class ProdukPage extends StatefulWidget {
 class _ProdukPageState extends State<ProdukPage> {
   String selectedCategory = 'Semua Kategori';
   String searchQuery = '';
-  final GlobalKey<ProdukGridState> _gridKey =
-      GlobalKey();
+  final GlobalKey<ProdukGridState> _gridKey = GlobalKey();
 
   @override
   Widget build(BuildContext context) {
@@ -33,8 +32,7 @@ class _ProdukPageState extends State<ProdukPage> {
             builder: (context) => const TambahProdukPopup(),
           );
 
-          if (result == true)
-            _gridKey.currentState?.loadProduk();
+          if (result == true) _gridKey.currentState?.loadProduk();
         },
         backgroundColor: const Color.fromRGBO(217, 160, 91, 1),
         shape: const CircleBorder(),
@@ -49,8 +47,7 @@ class _ProdukPageState extends State<ProdukPage> {
             children: [
               ProdukHeader(
                 onMenuTap: widget.onMenuTap,
-                onReloadTap: () =>
-                    _gridKey.currentState?.loadProduk(),
+                onReloadTap: () => _gridKey.currentState?.loadProduk(),
               ),
               const SizedBox(height: 12),
               const BestsellerSection(),
@@ -73,6 +70,7 @@ class _ProdukPageState extends State<ProdukPage> {
               ),
               const SizedBox(height: 16),
               ProdukGrid(
+                key: _gridKey,
                 selectedCategory: selectedCategory,
                 searchQuery: searchQuery,
               ),

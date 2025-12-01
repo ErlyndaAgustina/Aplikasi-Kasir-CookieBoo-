@@ -395,7 +395,7 @@ class SilverMemberCard extends StatelessWidget {
     try {
       final pelangganResp = await client
           .from('pelanggan')
-          .select('id, nama, email, nomor_tlpn, membership')
+          .select('id, nama, email, nomor_tlpn, alamat, membership') 
           .eq('membership', 'silver')
           .order('nama');
 

@@ -58,9 +58,6 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // ==================================================
-  //                UI TAB 1 – PELANGGAN HARI INI
-  // ==================================================
   Widget _buildPelangganHariIni() {
     return Column(
       children: [
@@ -81,9 +78,6 @@ class _CustomersPageState extends State<CustomersPage> {
     );
   }
 
-  // ==================================================
-  //                UI TAB 2 – MEMBER TIER
-  // ==================================================
   Widget _buildMemberTier() {
     return Column(
       children: [

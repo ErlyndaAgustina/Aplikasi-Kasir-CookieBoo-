@@ -19,9 +19,16 @@ class ProfileView extends StatelessWidget {
 
   Color getRoleColor() {
     if (role.toLowerCase() == "admin") {
-      return const Color(0xFF92C5FF);
+      return const Color.fromRGBO(219, 234, 254, 1);
     }
-    return const Color(0xFFFFD56E);
+    return const Color.fromRGBO(254, 243, 199, 1);
+  }
+
+  Color getTextRoleColor() {
+    if (role.toLowerCase() == "admin") {
+      return const Color.fromRGBO(35, 65, 159, 1);
+    }
+    return const Color.fromRGBO(162, 79, 37, 1);
   }
 
   @override
@@ -34,7 +41,7 @@ class ProfileView extends StatelessWidget {
         borderRadius: BorderRadius.circular(22),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.06),
+            color: Colors.black.withOpacity(0.2),
             blurRadius: 12,
             offset: const Offset(0, 4),
           ),
@@ -60,8 +67,8 @@ class ProfileView extends StatelessWidget {
             style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 20,
-              fontWeight: FontWeight.bold,
-              color: Color.fromRGBO(69, 55, 42, 1),
+              fontWeight: FontWeight.w900,
+              color: Color.fromRGBO(107, 79, 63, 1),
             ),
           ),
 
@@ -72,14 +79,18 @@ class ProfileView extends StatelessWidget {
             decoration: BoxDecoration(
               color: getRoleColor(),
               borderRadius: BorderRadius.circular(18),
+              border: Border.all(
+                color: getTextRoleColor(),
+                width: 1,
+              ),
             ),
             child: Text(
               role,
-              style: const TextStyle(
+              style: TextStyle(
                 fontFamily: 'Poppins',
-                fontSize: 12,
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
+                fontSize: 14,
+                color: getTextRoleColor(),
+                fontWeight: FontWeight.w800,
               ),
             ),
           ),
@@ -90,8 +101,8 @@ class ProfileView extends StatelessWidget {
             "CookieBoo! Team Member",
             style: TextStyle(
               fontFamily: 'Poppins',
-              fontSize: 12,
-              color: Color.fromRGBO(143, 109, 77, 1),
+              fontSize: 15,
+              color: Color.fromRGBO(139, 111, 71, 1),
             ),
           ),
 
@@ -106,7 +117,7 @@ class ProfileView extends StatelessWidget {
             },
             borderRadius: BorderRadius.circular(25),
             child: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 7),
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 5),
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(25),
                 border: Border.all(
@@ -119,7 +130,7 @@ class ProfileView extends StatelessWidget {
                 "✏️  Edit Profil",
                 style: TextStyle(
                   fontFamily: 'Poppins',
-                  fontSize: 13.5,
+                  fontSize: 13,
                   color: Color.fromRGBO(107, 79, 63, 1),
                   fontWeight: FontWeight.w600,
                 ),
@@ -127,53 +138,103 @@ class ProfileView extends StatelessWidget {
             ),
           ),
 
-          const SizedBox(height: 25),
+          const SizedBox(height: 30),
+          Divider(color: const Color.fromRGBO(255, 227, 191, 1)),
+          const SizedBox(height: 20),
 
-          buildInfo("Nama Lengkap", name),
+          ProfileFieldCard(
+            icon: Icons.person_outline,
+            title: "Nama Lengkap",
+            value: name,
+          ),
           const SizedBox(height: 12),
-          buildInfo("Posisi", role),
+
+          ProfileFieldCard(
+            icon: Icons.work_outline,
+            title: "Posisi",
+            value: role,
+          ),
           const SizedBox(height: 12),
-          buildInfo("Alamat Email", email),
+
+          ProfileFieldCard(
+            icon: Icons.email_outlined,
+            title: "Alamat Email",
+            value: email,
+          ),
           const SizedBox(height: 12),
-          buildInfo("Nomor Telepon", phone),
+
+          ProfileFieldCard(
+            icon: Icons.phone_outlined,
+            title: "Nomor Telepon",
+            value: phone,
+          ),
           const SizedBox(height: 12),
-          buildInfo("Alamat", address),
+
+          ProfileFieldCard(
+            icon: Icons.home_outlined,
+            title: "Alamat",
+            value: address,
+          ),
         ],
       ),
     );
   }
+}
 
-  Widget buildInfo(String title, String value) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          title,
-          style: const TextStyle(
-            fontFamily: 'Poppins',
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: Color.fromRGBO(69, 55, 42, 1),
-          ),
-        ),
-        const SizedBox(height: 5),
-        Container(
-          width: double.infinity,
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 14),
-          decoration: BoxDecoration(
-            color: const Color.fromRGBO(255, 236, 217, 1),
-            borderRadius: BorderRadius.circular(14),
-          ),
-          child: Text(
-            value,
-            style: const TextStyle(
-              fontFamily: 'Poppins',
-              fontSize: 13,
-              color: Color.fromRGBO(69, 55, 42, 1),
+class ProfileFieldCard extends StatelessWidget {
+  final IconData icon;
+  final String title;
+  final String value;
+
+  const ProfileFieldCard({
+    super.key,
+    required this.icon,
+    required this.title,
+    required this.value,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 13),
+      decoration: BoxDecoration(
+        color: const Color.fromRGBO(246, 231, 212, 1),
+        borderRadius: BorderRadius.circular(16),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Icon(icon, color: Color.fromRGBO(139, 111, 71, 1), size: 20),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 12,
+                    fontWeight: FontWeight.w600,
+                    color: Color.fromRGBO(139, 111, 71, 1),
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  value,
+                  style: const TextStyle(
+                    fontFamily: 'Poppins',
+                    fontSize: 14,
+                    color: Color.fromRGBO(107, 79, 63, 1),
+                    height: 1.3,
+                    fontWeight: FontWeight.w900,
+                  ),
+                ),
+              ],
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 }
