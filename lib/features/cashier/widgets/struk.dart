@@ -1,21 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-
-class CartItem {
-  final String name;
-  final int quantity;
-  final String priceDisplay;
-  final int priceValue;
-
-  CartItem({
-    required this.name,
-    required this.quantity,
-    required this.priceDisplay,
-    required this.priceValue,
-  });
-
-  int get total => priceValue * quantity;
-}
+import '../models/cart_item.dart';
 
 void showPaymentReceipt(
   BuildContext context, {
@@ -23,7 +8,9 @@ void showPaymentReceipt(
   required double discountRate,
   required String paymentMethod,
   required String customerName,
-  String? customerMembership, // null jika non-member
+  String? customerMembership,
+  required int paidAmount,
+  required int changeAmount,
 }) {
   showModalBottomSheet(
     context: context,
@@ -39,6 +26,8 @@ void showPaymentReceipt(
         paymentMethod: paymentMethod,
         customerName: customerName,
         customerMembership: customerMembership,
+        paidAmount: paidAmount,
+        changeAmount: changeAmount,
       );
     },
   );
@@ -50,15 +39,20 @@ class PaymentReceiptPopup extends StatelessWidget {
   final String paymentMethod;
   final String customerName;
   final String? customerMembership;
+  final int paidAmount;
+  final int changeAmount;
 
   const PaymentReceiptPopup({
-    super.key,
-    required this.items,
-    required this.discountRate,
-    required this.paymentMethod,
-    required this.customerName,
-    this.customerMembership,
-  });
+  super.key,
+  required this.items,
+  required this.discountRate,
+  required this.paymentMethod,
+  required this.customerName,
+  this.customerMembership,
+  required this.paidAmount,
+  required this.changeAmount,
+});
+
 
   @override
   Widget build(BuildContext context) {
@@ -79,24 +73,26 @@ class PaymentReceiptPopup extends StatelessWidget {
     final total = afterDiscount + tax;
     final now = DateTime.now();
     final dateFormat = DateFormat('dd MMM yyyy, HH.mm', 'id_ID');
-    final transactionId = "INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(items.length + 1).toString().padLeft(3, '0')}";
+    final transactionId =
+        "INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(items.length + 1).toString().padLeft(3, '0')}";
     const queueNumber = "001";
 
-Widget? membershipBadge;
-if (customerMembership != null && customerMembership != 'non_member') {
-  final String membership = customerMembership!;
+    Widget? membershipBadge;
+    if (customerMembership != null && customerMembership != 'non_member') {
+      final String membership = customerMembership!;
 
-  final String tierDisplay = membership[0].toUpperCase() + membership.substring(1);
-  final bool isBlueBadge = membership == 'platinum' || membership == 'gold';
+      final String tierDisplay =
+          membership[0].toUpperCase() + membership.substring(1);
+      final bool isBlueBadge = membership == 'platinum' || membership == 'gold';
 
-  membershipBadge = Row(
-    children: [
-      _badge("Membership"),
-      const SizedBox(width: 6),
-      _badge(tierDisplay, isBlue: isBlueBadge),
-    ],
-  );
-}
+      membershipBadge = Row(
+        children: [
+          _badge("Membership"),
+          const SizedBox(width: 6),
+          _badge(tierDisplay, isBlue: isBlueBadge),
+        ],
+      );
+    }
 
     return SafeArea(
       child: Padding(
@@ -164,11 +160,13 @@ if (customerMembership != null && customerMembership != 'non_member') {
                 const SizedBox(height: 6),
 
                 // Daftar pesanan dinamis
-                ...items.map((item) => _itemRow(
-                      name: item.name,
-                      desc: "${item.quantity} × ${item.priceDisplay}",
-                      price: currency.format(item.total),
-                    )),
+                ...items.map(
+                  (item) => _itemRow(
+                    name: item.name,
+                    desc: "${item.quantity} × ${item.priceDisplay}",
+                    price: currency.format(item.total),
+                  ),
+                ),
 
                 if (items.isEmpty)
                   const Padding(

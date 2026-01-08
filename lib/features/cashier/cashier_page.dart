@@ -1,9 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:project_5_aplikasi_kasir_cookiesboo/features/cashier/widgets/struk.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../cashier/widgets/cashier_header.dart';
 import '../cashier/widgets/customer_info_card.dart';
 import '../cashier/widgets/cashier_produk.dart';
 import '../cashier/widgets/cashier_cart.dart';
+import '../cashier/models/cart_item.dart';
 
 class CashierPage extends StatefulWidget {
   final VoidCallback onMenuTap;
@@ -21,6 +23,11 @@ class _CashierPageState extends State<CashierPage> {
 
   String paymentMethod = "cash";
   double discountRate = 0.0;
+  String customerName = "-";
+  String? customerMembership;
+  String? selectedMemberId;
+  int paidAmount = 0;
+  int changeAmount = 0;
 
   @override
   void initState() {
@@ -35,27 +42,25 @@ class _CashierPageState extends State<CashierPage> {
           .from('produk')
           .select('nama_produk, stok');
 
-      if (response != null) {
-        setState(() {
-          productStocks = {
-            for (var item in response)
-              item['nama_produk'] as String:
-                  int.tryParse(item['stok']?.toString() ?? '0') ?? 0,
-          };
+      setState(() {
+        productStocks = {
+          for (var item in response)
+            item['nama_produk'] as String:
+                int.tryParse(item['stok']?.toString() ?? '0') ?? 0,
+        };
 
-          // 🔥 SINKRONKAN CART ITEMS
-          items = items.map((item) {
-            final updatedStock = productStocks[item.name] ?? 0;
-            return CartItem(
-              name: item.name,
-              quantity: item.quantity,
-              priceDisplay: item.priceDisplay,
-              priceValue: item.priceValue,
-              availableStock: updatedStock,
-            );
-          }).toList();
-        });
-      }
+        // 🔥 SINKRONKAN CART ITEMS
+        items = items.map((item) {
+          final updatedStock = productStocks[item.name] ?? 0;
+          return CartItem(
+            name: item.name,
+            quantity: item.quantity,
+            priceDisplay: item.priceDisplay,
+            priceValue: item.priceValue,
+            availableStock: updatedStock,
+          );
+        }).toList();
+      });
     } catch (e) {
       debugPrint('Error loading product stocks: $e');
     }
@@ -154,6 +159,13 @@ class _CashierPageState extends State<CashierPage> {
     });
   }
 
+  void _onPaidAmountChanged(int value, int total) {
+    setState(() {
+      paidAmount = value;
+      changeAmount = value - total;
+    });
+  }
+
   void _onIncrease(int index) {
     setState(() {
       final item = items[index];
@@ -210,11 +222,79 @@ class _CashierPageState extends State<CashierPage> {
     });
   }
 
-  void _onConfirm() {
-    debugPrint("Konfirmasi transaksi:");
-    debugPrint("Total item: ${items.length}");
-    debugPrint("Diskon: ${(discountRate * 100).toStringAsFixed(0)}%");
-    debugPrint("Metode bayar: $paymentMethod");
+  Future<void> _onConfirm() async {
+    if (items.isEmpty) return;
+
+    final user = _supabase.auth.currentUser;
+    if (user == null) return;
+
+    String? pelangganId;
+
+    // 1️⃣ NON-MEMBER → insert pelanggan
+    if (selectedMemberId == null && customerName != "-") {
+      final pelangganRes = await _supabase
+          .from('pelanggan')
+          .insert({'nama': customerName, 'membership': 'non_member'})
+          .select('id')
+          .single();
+
+      pelangganId = pelangganRes['id'];
+    }
+    // 2️⃣ MEMBER → pakai ID existing
+    else {
+      pelangganId = selectedMemberId;
+    }
+
+    // 3️⃣ Hitung transaksi
+    final subtotal = items.fold<num>(
+      0,
+      (sum, item) => sum + (item.priceValue * item.quantity),
+    );
+    final diskon = subtotal * discountRate;
+    final pajak = (subtotal - diskon) * 0.10;
+    final total = subtotal - diskon + pajak;
+
+    final noTransaksi = "INV-${DateTime.now().millisecondsSinceEpoch}";
+
+    // 4️⃣ Insert transaksi
+    final transaksi = await _supabase
+        .from('transaksi')
+        .insert({
+          'no_transaksi': noTransaksi,
+          'pelanggan_id': pelangganId,
+          'kasir_id': user.id,
+          'subtotal': subtotal,
+          'diskon': diskon,
+          'pajak': pajak,
+          'total_pembayaran': total,
+          'metode_pembayaran': paymentMethod == 'cash' ? 'cash' : 'non_tunai',
+        })
+        .select('id')
+        .single();
+
+    final transaksiId = transaksi['id'];
+
+    // 5️⃣ Insert detail transaksi
+    for (final item in items) {
+      await _supabase.from('transaksi_detail').insert({
+        'transaksi_id': transaksiId,
+        'nama_produk': item.name,
+        'jumlah': item.quantity,
+        'harga_satuan': item.priceValue,
+      });
+    }
+
+    // 6️⃣ Baru tampilkan struk
+    showPaymentReceipt(
+      context,
+      items: items,
+      discountRate: discountRate,
+      paymentMethod: paymentMethod,
+      customerName: customerName,
+      customerMembership: selectedMemberId == null ? null : 'member',
+      paidAmount: paidAmount,
+      changeAmount: changeAmount,
+    );
   }
 
   @override
@@ -231,7 +311,15 @@ class _CashierPageState extends State<CashierPage> {
 
               const SizedBox(height: 18),
 
-              CustomerInfoCard(onDiscountChanged: _updateDiscountRate),
+              CustomerInfoCard(
+                onDiscountChanged: _updateDiscountRate,
+                onCustomerNameChanged: (name) {
+                  setState(() => customerName = name);
+                },
+                onMembershipChanged: (memberId) {
+                  setState(() => selectedMemberId = memberId);
+                },
+              ),
 
               const SizedBox(height: 18),
 
@@ -240,7 +328,7 @@ class _CashierPageState extends State<CashierPage> {
               const SizedBox(height: 18),
 
               CashierCart(
-                items: items,
+                items: List<CartItem>.from(items),
                 onIncrease: _onIncrease,
                 onDecrease: _onDecrease,
                 onDelete: _onDelete,

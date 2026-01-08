@@ -1,29 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'struk.dart';
-
-class CartItem {
-  final String name;
-  final int quantity;
-  final String priceDisplay;
-  final int priceValue;
-  final int availableStock;
-
-  CartItem({
-    required this.name,
-    required this.quantity,
-    required this.priceDisplay,
-    required this.priceValue,
-    int? availableStock,
-  }) : availableStock = availableStock ?? 0;
-
-  int get total => priceValue * quantity;
-}
-
+import '../models/cart_item.dart';
 
 // Helper untuk parse harga dari string "Rp xx.xxx" ke int
 int parsePriceString(String priceStr) {
-  return int.tryParse(priceStr.replaceAll('Rp', '').replaceAll('.', '').trim()) ?? 0;
+  return int.tryParse(
+        priceStr.replaceAll('Rp', '').replaceAll('.', '').trim(),
+      ) ??
+      0;
 }
 
 class CashierCart extends StatefulWidget {
@@ -64,7 +49,8 @@ class _CashierCartState extends State<CashierCart> {
 
   @override
   Widget build(BuildContext context) {
-    final subtotal = widget.items.fold<int>(0, (sum, item) => sum + item.total);
+    final items = List<CartItem>.from(widget.items);
+    final subtotal = items.fold<int>(0, (sum, item) => sum + item.total);
 
     final discountValue = (subtotal * widget.discountRate).round();
 
@@ -131,8 +117,8 @@ class _CashierCartState extends State<CashierCart> {
           Column(
             children: List.generate(widget.items.length, (index) {
               final item = widget.items[index];
-              final canIncrease = item.quantity < item.availableStock;
-              
+              final canIncrease = item.quantity < item.availableStock!;
+
               return Container(
                 margin: EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(16),
@@ -169,7 +155,7 @@ class _CashierCartState extends State<CashierCart> {
                       ],
                     ),
                     const SizedBox(height: 8),
-                    
+
                     // Indikator stok tersedia
                     Text(
                       "Stok tersedia: ${item.availableStock} Box",
@@ -184,7 +170,11 @@ class _CashierCartState extends State<CashierCart> {
 
                     Row(
                       children: [
-                        _qtyButton(Icons.remove, () => widget.onDecrease(index), enabled: true),
+                        _qtyButton(
+                          Icons.remove,
+                          () => widget.onDecrease(index),
+                          enabled: true,
+                        ),
                         const SizedBox(width: 10),
                         Text(
                           "${item.quantity}",
@@ -197,7 +187,7 @@ class _CashierCartState extends State<CashierCart> {
                         ),
                         const SizedBox(width: 10),
                         _qtyButton(
-                          Icons.add, 
+                          Icons.add,
                           canIncrease ? () => widget.onIncrease(index) : () {},
                           enabled: canIncrease,
                         ),
@@ -213,12 +203,15 @@ class _CashierCartState extends State<CashierCart> {
                         ),
                       ],
                     ),
-                    
+
                     // Warning jika stok maksimal
                     if (!canIncrease) ...[
                       const SizedBox(height: 8),
                       Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        padding: const EdgeInsets.symmetric(
+                          horizontal: 10,
+                          vertical: 4,
+                        ),
                         decoration: BoxDecoration(
                           color: const Color.fromRGBO(245, 158, 11, 0.15),
                           borderRadius: BorderRadius.circular(8),
@@ -249,7 +242,7 @@ class _CashierCartState extends State<CashierCart> {
                         ),
                       ),
                     ],
-                    
+
                     const SizedBox(height: 10),
 
                     GestureDetector(
@@ -430,11 +423,16 @@ class _CashierCartState extends State<CashierCart> {
               onPressed: widget.items.isEmpty
                   ? null
                   : (widget.paymentMethod == "cash" && _cashAmount < total)
-                      ? null
-                      : widget.onConfirm,
+                  ? null
+                  : widget.onConfirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromRGBO(217, 160, 91, 1),
-                disabledBackgroundColor: const Color.fromRGBO(198, 165, 128, 0.5),
+                disabledBackgroundColor: const Color.fromRGBO(
+                  198,
+                  165,
+                  128,
+                  0.5,
+                ),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
@@ -457,7 +455,11 @@ class _CashierCartState extends State<CashierCart> {
     );
   }
 
-  Widget _qtyButton(IconData icon, VoidCallback onTap, {required bool enabled}) {
+  Widget _qtyButton(
+    IconData icon,
+    VoidCallback onTap, {
+    required bool enabled,
+  }) {
     return GestureDetector(
       onTap: enabled ? onTap : null,
       child: Container(
@@ -466,7 +468,7 @@ class _CashierCartState extends State<CashierCart> {
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: enabled 
+            color: enabled
                 ? Color.fromRGBO(229, 167, 154, 0.68)
                 : Color.fromRGBO(229, 167, 154, 0.3),
             width: 1.5,
@@ -474,9 +476,9 @@ class _CashierCartState extends State<CashierCart> {
           color: enabled ? Colors.transparent : Colors.grey.withOpacity(0.1),
         ),
         child: Icon(
-          icon, 
+          icon,
           size: 15,
-          color: enabled 
+          color: enabled
               ? Color.fromRGBO(107, 79, 63, 1)
               : Color.fromRGBO(107, 79, 63, 0.3),
         ),

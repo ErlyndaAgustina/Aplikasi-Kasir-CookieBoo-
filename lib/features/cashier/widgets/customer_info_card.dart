@@ -5,10 +5,14 @@ import 'package:intl/date_symbol_data_local.dart';
 
 class CustomerInfoCard extends StatefulWidget {
   final ValueChanged<double> onDiscountChanged;
+  final ValueChanged<String> onCustomerNameChanged;
+  final ValueChanged<String?> onMembershipChanged;
 
   const CustomerInfoCard({
     super.key,
     required this.onDiscountChanged,
+    required this.onCustomerNameChanged,
+    required this.onMembershipChanged,
   });
 
   @override
@@ -20,8 +24,11 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
   String? selectedMemberId;
   List<Map<String, dynamic>> memberList = [];
   bool isLoadingMembers = true;
+  String _currentQueueNumber = "001";
+  bool _isLoadingQueue = true;
 
-  final TextEditingController _nonMemberNameController = TextEditingController();
+  final TextEditingController _nonMemberNameController =
+      TextEditingController();
 
   final supabase = Supabase.instance.client;
 
@@ -30,6 +37,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
     super.initState();
     initializeDateFormatting('id_ID');
     _loadMembers();
+    _loadTodayQueueNumber();
 
     supabase
         .channel('public:pelanggan')
@@ -54,27 +62,27 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
   }
 
   Future<void> _loadMembers() async {
-  if (!mounted) return;
-  setState(() => isLoadingMembers = true);
+    if (!mounted) return;
+    setState(() => isLoadingMembers = true);
 
-  try {
-    final response = await supabase
-        .from('pelanggan')
-        .select('id, nama, membership')
-        .inFilter('membership', ['silver', 'gold', 'platinum'])
-        .order('nama', ascending: true);
+    try {
+      final response = await supabase
+          .from('pelanggan')
+          .select('id, nama, membership')
+          .inFilter('membership', ['silver', 'gold', 'platinum'])
+          .order('nama', ascending: true);
 
-    if (mounted) {
-      setState(() {
-        memberList = List<Map<String, dynamic>>.from(response);
-        isLoadingMembers = false;
-      });
+      if (mounted) {
+        setState(() {
+          memberList = List<Map<String, dynamic>>.from(response);
+          isLoadingMembers = false;
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading pelanggan: $e');
+      if (mounted) setState(() => isLoadingMembers = false);
     }
-  } catch (e) {
-    debugPrint('Error loading pelanggan: $e');
-    if (mounted) setState(() => isLoadingMembers = false);
   }
-}
 
   String _getMembershipLabel(String? membership) {
     switch (membership) {
@@ -118,15 +126,52 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
     widget.onDiscountChanged(rate);
   }
 
+  Future<void> _loadTodayQueueNumber() async {
+    try {
+      final today = DateFormat('yyyy-MM-dd').format(DateTime.now());
+
+      final response = await supabase
+          .from('transaksi')
+          .select('no_antrian, tanggal_waktu')
+          .gte('tanggal_waktu', '$today 00:00:00')
+          .lte('tanggal_waktu', '$today 23:59:59')
+          .order('tanggal_waktu', ascending: false)
+          .limit(1)
+          .maybeSingle();
+
+      if (!mounted) return;
+
+      setState(() {
+        final noAntrian = response?['no_antrian'];
+
+        if (noAntrian == null || noAntrian.toString().isEmpty) {
+          _currentQueueNumber = "001";
+        } else {
+          _currentQueueNumber = noAntrian.toString();
+        }
+
+        _isLoadingQueue = false;
+      });
+    } catch (e) {
+      debugPrint('Error loading queue number: $e');
+      if (mounted) {
+        setState(() {
+          _currentQueueNumber = "001";
+          _isLoadingQueue = false;
+        });
+      }
+    }
+  }
+
   Future<String?> saveNonMemberToSupabase() async {
     final name = _nonMemberNameController.text.trim();
     if (name.isEmpty) return null;
 
     try {
-      final response = await supabase.from('pelanggan').insert({
-        'nama': name,
-        'membership': 'non_member',
-      }).select('id');
+      final response = await supabase
+          .from('pelanggan')
+          .insert({'nama': name, 'membership': 'non_member'})
+          .select('id');
 
       return response[0]['id'] as String?;
     } catch (e) {
@@ -145,9 +190,9 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
     final date = dateFormat.format(now);
     final time = timeFormat.format(now);
 
-    const queueNumber = "001"; // TODO: Implementasi antrian otomatis nanti
+    final queueText = _isLoadingQueue ? "…" : _currentQueueNumber;
 
-    return "$day, $date • $time • Antrian: $queueNumber";
+    return "$day, $date • $time • Antrian: $queueText";
   }
 
   @override
@@ -168,11 +213,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
           width: 1,
         ),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 5,
-            offset: Offset(6, 6),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 5, offset: Offset(6, 6)),
         ],
       ),
       child: Column(
@@ -228,8 +269,10 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                         setState(() {
                           isMembership = false;
                           selectedMemberId = null;
+                          _nonMemberNameController.clear();
                         });
                         widget.onDiscountChanged(0.0);
+                        widget.onCustomerNameChanged("-");
                       },
                     ),
                   ],
@@ -239,7 +282,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
 
                 if (isMembership)
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
+                    padding: const EdgeInsets.symmetric(horizontal: 12),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
@@ -262,10 +305,16 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                         isExpanded: true,
                         icon: const Icon(Icons.keyboard_arrow_down),
                         items: isLoadingMembers
-                            ? [const DropdownMenuItem(value: null, child: Text("Memuat pelanggan..."))]
+                            ? [
+                                const DropdownMenuItem(
+                                  value: null,
+                                  child: Text("Memuat pelanggan..."),
+                                ),
+                              ]
                             : memberList.map((member) {
                                 final nama = member['nama'] as String;
-                                final membership = member['membership'] as String;
+                                final membership =
+                                    member['membership'] as String;
                                 final label = _getMembershipLabel(membership);
                                 return DropdownMenuItem(
                                   value: member['id'] as String,
@@ -278,6 +327,16 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                         onChanged: (val) {
                           setState(() => selectedMemberId = val);
                           _applyDiscount(val);
+
+                          final selected = memberList.firstWhere(
+                            (m) => m['id'] == val,
+                            orElse: () => {},
+                          );
+
+                          widget.onMembershipChanged(selected['id'] as String?);
+                          widget.onCustomerNameChanged(
+                            selected['nama'] as String? ?? "-",
+                          );
                         },
                       ),
                     ),
@@ -286,12 +345,19 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                 if (!isMembership)
                   TextField(
                     controller: _nonMemberNameController,
+                    onChanged: (value) {
+                      widget.onCustomerNameChanged(
+                        value.trim().isEmpty ? "-" : value.trim(),
+                      );
+                    },
                     decoration: InputDecoration(
+                      hintText: "Tambahkan nama pelanggan...",
+                      filled: true,
+                      fillColor: Colors.white,
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
                         borderSide: const BorderSide(
                           color: Color.fromRGBO(198, 165, 128, 1),
-                          width: 1,
                         ),
                       ),
                       focusedBorder: OutlineInputBorder(
@@ -301,19 +367,6 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                           width: 1.5,
                         ),
                       ),
-                      hintText: "Tambahkan nama pelanggan...",
-                      hintStyle: const TextStyle(
-                        fontFamily: 'Poppins',
-                        color: Color.fromRGBO(107, 79, 63, 1),
-                        fontSize: 13,
-                        fontWeight: FontWeight.w700,
-                      ),
-                      contentPadding: EdgeInsets.symmetric(
-                        horizontal: 12,
-                        vertical: width < 400 ? 6 : 8,
-                      ),
-                      filled: true,
-                      fillColor: Colors.white,
                     ),
                   ),
               ],
@@ -345,9 +398,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
             fontFamily: 'Poppins',
             fontSize: 14,
             fontWeight: FontWeight.w600,
-            color: active
-                ? Colors.white
-                : const Color.fromRGBO(107, 79, 63, 1),
+            color: active ? Colors.white : const Color.fromRGBO(107, 79, 63, 1),
           ),
         ),
       ),
