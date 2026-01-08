@@ -1,18 +1,32 @@
 import 'package:flutter/material.dart';
-
+import 'package:flutter/services.dart';
 import 'struk.dart';
 
 class CartItem {
   final String name;
   final int quantity;
-  final int price;
+  final String priceDisplay;
+  final int priceValue;
+  final int availableStock;
 
-  CartItem({required this.name, required this.quantity, required this.price});
+  CartItem({
+    required this.name,
+    required this.quantity,
+    required this.priceDisplay,
+    required this.priceValue,
+    int? availableStock,
+  }) : availableStock = availableStock ?? 0;
 
-  int get total => price * quantity;
+  int get total => priceValue * quantity;
 }
 
-class CashierCart extends StatelessWidget {
+
+// Helper untuk parse harga dari string "Rp xx.xxx" ke int
+int parsePriceString(String priceStr) {
+  return int.tryParse(priceStr.replaceAll('Rp', '').replaceAll('.', '').trim()) ?? 0;
+}
+
+class CashierCart extends StatefulWidget {
   final List<CartItem> items;
   final Function(int index) onIncrease;
   final Function(int index) onDecrease;
@@ -35,16 +49,32 @@ class CashierCart extends StatelessWidget {
   });
 
   @override
-  Widget build(BuildContext context) {
-    final subtotal = items.fold<int>(0, (sum, item) => sum + item.total);
+  State<CashierCart> createState() => _CashierCartState();
+}
 
-    final discountValue = (subtotal * discountRate).round();
+class _CashierCartState extends State<CashierCart> {
+  final TextEditingController _cashController = TextEditingController();
+  int _cashAmount = 0;
+
+  @override
+  void dispose() {
+    _cashController.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final subtotal = widget.items.fold<int>(0, (sum, item) => sum + item.total);
+
+    final discountValue = (subtotal * widget.discountRate).round();
 
     final afterDiscount = subtotal - discountValue;
 
     final tax = (afterDiscount * 0.10).round();
 
     final total = afterDiscount + tax;
+
+    final change = widget.paymentMethod == "cash" ? (_cashAmount - total) : 0;
 
     return Container(
       width: double.infinity,
@@ -78,7 +108,7 @@ class CashierCart extends StatelessWidget {
           ),
           const SizedBox(height: 16),
 
-          if (items.isEmpty)
+          if (widget.items.isEmpty)
             SizedBox(
               width: double.infinity,
               child: Column(
@@ -99,8 +129,10 @@ class CashierCart extends StatelessWidget {
             ),
 
           Column(
-            children: List.generate(items.length, (index) {
-              final item = items[index];
+            children: List.generate(widget.items.length, (index) {
+              final item = widget.items[index];
+              final canIncrease = item.quantity < item.availableStock;
+              
               return Container(
                 margin: EdgeInsets.only(bottom: 10),
                 padding: const EdgeInsets.all(16),
@@ -114,17 +146,19 @@ class CashierCart extends StatelessWidget {
                     Row(
                       mainAxisAlignment: MainAxisAlignment.spaceBetween,
                       children: [
-                        Text(
-                          item.name,
-                          style: const TextStyle(
-                            fontFamily: 'Poppins',
-                            color: Color.fromRGBO(107, 79, 63, 1),
-                            fontSize: 15,
-                            fontWeight: FontWeight.w700,
+                        Expanded(
+                          child: Text(
+                            item.name,
+                            style: const TextStyle(
+                              fontFamily: 'Poppins',
+                              color: Color.fromRGBO(107, 79, 63, 1),
+                              fontSize: 15,
+                              fontWeight: FontWeight.w700,
+                            ),
                           ),
                         ),
                         Text(
-                          "Rp ${item.price}",
+                          item.priceDisplay,
                           style: const TextStyle(
                             fontFamily: 'Poppins',
                             fontSize: 15,
@@ -134,11 +168,23 @@ class CashierCart extends StatelessWidget {
                         ),
                       ],
                     ),
+                    const SizedBox(height: 8),
+                    
+                    // Indikator stok tersedia
+                    Text(
+                      "Stok tersedia: ${item.availableStock} Box",
+                      style: const TextStyle(
+                        fontFamily: 'Poppins',
+                        fontSize: 12,
+                        fontWeight: FontWeight.w600,
+                        color: Color.fromRGBO(124, 124, 126, 1),
+                      ),
+                    ),
                     const SizedBox(height: 13),
 
                     Row(
                       children: [
-                        _qtyButton(Icons.remove, () => onDecrease(index)),
+                        _qtyButton(Icons.remove, () => widget.onDecrease(index), enabled: true),
                         const SizedBox(width: 10),
                         Text(
                           "${item.quantity}",
@@ -150,7 +196,11 @@ class CashierCart extends StatelessWidget {
                           ),
                         ),
                         const SizedBox(width: 10),
-                        _qtyButton(Icons.add, () => onIncrease(index)),
+                        _qtyButton(
+                          Icons.add, 
+                          canIncrease ? () => widget.onIncrease(index) : () {},
+                          enabled: canIncrease,
+                        ),
                         const Spacer(),
                         Text(
                           "Rp ${item.total}",
@@ -163,10 +213,47 @@ class CashierCart extends StatelessWidget {
                         ),
                       ],
                     ),
+                    
+                    // Warning jika stok maksimal
+                    if (!canIncrease) ...[
+                      const SizedBox(height: 8),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                        decoration: BoxDecoration(
+                          color: const Color.fromRGBO(245, 158, 11, 0.15),
+                          borderRadius: BorderRadius.circular(8),
+                          border: Border.all(
+                            color: const Color.fromRGBO(245, 158, 11, 1),
+                            width: 1,
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: const [
+                            Icon(
+                              Icons.info_outline,
+                              size: 14,
+                              color: Color.fromRGBO(245, 158, 11, 1),
+                            ),
+                            SizedBox(width: 5),
+                            Text(
+                              "Stok maksimal tercapai",
+                              style: TextStyle(
+                                fontFamily: 'Poppins',
+                                fontSize: 11,
+                                fontWeight: FontWeight.w600,
+                                color: Color.fromRGBO(245, 158, 11, 1),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ],
+                    
                     const SizedBox(height: 10),
 
                     GestureDetector(
-                      onTap: () => onDelete(index),
+                      onTap: () => widget.onDelete(index),
                       child: Container(
                         padding: const EdgeInsets.symmetric(
                           horizontal: 14,
@@ -213,7 +300,7 @@ class CashierCart extends StatelessWidget {
 
           _priceRow("Subtotal", subtotal),
           _priceRow(
-            "Diskon (${(discountRate * 100).toStringAsFixed(0)}%)",
+            "Diskon (${(widget.discountRate * 100).toStringAsFixed(0)}%)",
             -discountValue,
           ),
           _priceRow("Tax (10%)", tax),
@@ -237,18 +324,102 @@ class CashierCart extends StatelessWidget {
               _paymentButton(
                 label: "Cash",
                 icon: Icons.payments_outlined,
-                active: paymentMethod == "cash",
-                onTap: () => onSelectPayment("cash"),
+                active: widget.paymentMethod == "cash",
+                onTap: () {
+                  widget.onSelectPayment("cash");
+                  _cashController.clear();
+                  setState(() => _cashAmount = 0);
+                },
               ),
               const SizedBox(width: 10),
               _paymentButton(
                 label: "Non-Cash",
                 icon: Icons.credit_card_outlined,
-                active: paymentMethod == "non-cash",
-                onTap: () => onSelectPayment("non-cash"),
+                active: widget.paymentMethod == "non-cash",
+                onTap: () {
+                  widget.onSelectPayment("non-cash");
+                  _cashController.clear();
+                  setState(() => _cashAmount = 0);
+                },
               ),
             ],
           ),
+
+          // Input jumlah uang bayar jika metode cash
+          if (widget.paymentMethod == "cash") ...[
+            const SizedBox(height: 16),
+            const Text(
+              "Jumlah Uang Dibayar",
+              style: TextStyle(
+                fontFamily: 'Poppins',
+                color: Color.fromRGBO(107, 79, 63, 1),
+                fontSize: 14,
+                fontWeight: FontWeight.w700,
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: _cashController,
+              keyboardType: TextInputType.number,
+              inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+              onChanged: (value) {
+                setState(() {
+                  _cashAmount = int.tryParse(value) ?? 0;
+                });
+              },
+              decoration: InputDecoration(
+                hintText: "Masukkan jumlah uang",
+                hintStyle: const TextStyle(
+                  fontFamily: 'Poppins',
+                  fontSize: 13,
+                  color: Color.fromRGBO(124, 124, 126, 1),
+                ),
+                prefixIcon: const Padding(
+                  padding: EdgeInsets.only(left: 16, top: 12),
+                  child: Text(
+                    "Rp",
+                    style: TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 14,
+                      fontWeight: FontWeight.w600,
+                      color: Color.fromRGBO(107, 79, 63, 1),
+                    ),
+                  ),
+                ),
+                filled: true,
+                fillColor: const Color.fromRGBO(246, 231, 212, 1),
+                border: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(
+                    color: Color.fromRGBO(229, 167, 154, 0.68),
+                    width: 1.5,
+                  ),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(
+                    color: Color.fromRGBO(229, 167, 154, 0.68),
+                    width: 1.5,
+                  ),
+                ),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(15),
+                  borderSide: const BorderSide(
+                    color: Color.fromRGBO(217, 160, 91, 1),
+                    width: 2,
+                  ),
+                ),
+              ),
+              style: const TextStyle(
+                fontFamily: 'Poppins',
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: Color.fromRGBO(107, 79, 63, 1),
+              ),
+            ),
+            const SizedBox(height: 12),
+            _priceRow("Kembalian", change, bold: true),
+          ],
 
           const SizedBox(height: 22),
 
@@ -256,18 +427,23 @@ class CashierCart extends StatelessWidget {
             width: double.infinity,
             height: 40,
             child: ElevatedButton(
-              onPressed: () {
-                showPaymentReceipt(context); 
-              },
+              onPressed: widget.items.isEmpty
+                  ? null
+                  : (widget.paymentMethod == "cash" && _cashAmount < total)
+                      ? null
+                      : widget.onConfirm,
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color.fromRGBO(217, 160, 91, 1),
+                disabledBackgroundColor: const Color.fromRGBO(198, 165, 128, 0.5),
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(20),
                 ),
               ),
-              child: const Text(
-                "Konfirmasi Transaksi",
-                style: TextStyle(
+              child: Text(
+                widget.paymentMethod == "cash" && _cashAmount < total
+                    ? "Uang Tidak Cukup"
+                    : "Konfirmasi Transaksi",
+                style: const TextStyle(
                   fontFamily: 'Poppins',
                   fontSize: 15,
                   fontWeight: FontWeight.w800,
@@ -281,20 +457,29 @@ class CashierCart extends StatelessWidget {
     );
   }
 
-  Widget _qtyButton(IconData icon, VoidCallback onTap) {
+  Widget _qtyButton(IconData icon, VoidCallback onTap, {required bool enabled}) {
     return GestureDetector(
-      onTap: onTap,
+      onTap: enabled ? onTap : null,
       child: Container(
         width: 25,
         height: 25,
         decoration: BoxDecoration(
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: Color.fromRGBO(229, 167, 154, 0.68),
+            color: enabled 
+                ? Color.fromRGBO(229, 167, 154, 0.68)
+                : Color.fromRGBO(229, 167, 154, 0.3),
             width: 1.5,
           ),
+          color: enabled ? Colors.transparent : Colors.grey.withOpacity(0.1),
         ),
-        child: Icon(icon, size: 15),
+        child: Icon(
+          icon, 
+          size: 15,
+          color: enabled 
+              ? Color.fromRGBO(107, 79, 63, 1)
+              : Color.fromRGBO(107, 79, 63, 0.3),
+        ),
       ),
     );
   }

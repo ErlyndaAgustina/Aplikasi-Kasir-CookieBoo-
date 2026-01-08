@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 import '../cashier/widgets/cashier_header.dart';
 import '../cashier/widgets/customer_info_card.dart';
 import '../cashier/widgets/cashier_produk.dart';
@@ -14,11 +15,71 @@ class CashierPage extends StatefulWidget {
 }
 
 class _CashierPageState extends State<CashierPage> {
+  final _supabase = Supabase.instance.client;
   List<CartItem> items = [];
+  Map<String, int> productStocks = {}; // Menyimpan stok produk berdasarkan nama
 
   String paymentMethod = "cash";
-
   double discountRate = 0.0;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadProductStocks();
+    _subscribeToStockChanges();
+  }
+
+  Future<void> _loadProductStocks() async {
+    try {
+      final response = await _supabase
+          .from('produk')
+          .select('nama_produk, stok');
+
+      if (response != null) {
+        setState(() {
+          productStocks = {
+            for (var item in response)
+              item['nama_produk'] as String:
+                  int.tryParse(item['stok']?.toString() ?? '0') ?? 0,
+          };
+
+          // 🔥 SINKRONKAN CART ITEMS
+          items = items.map((item) {
+            final updatedStock = productStocks[item.name] ?? 0;
+            return CartItem(
+              name: item.name,
+              quantity: item.quantity,
+              priceDisplay: item.priceDisplay,
+              priceValue: item.priceValue,
+              availableStock: updatedStock,
+            );
+          }).toList();
+        });
+      }
+    } catch (e) {
+      debugPrint('Error loading product stocks: $e');
+    }
+  }
+
+  void _subscribeToStockChanges() {
+    _supabase
+        .channel('produk_stock_realtime')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'produk',
+          callback: (payload) {
+            _loadProductStocks();
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _supabase.removeChannel(_supabase.channel('produk_stock_realtime'));
+    super.dispose();
+  }
 
   void _updateDiscountRate(double value) {
     setState(() {
@@ -26,30 +87,69 @@ class _CashierPageState extends State<CashierPage> {
     });
   }
 
-  void _handleAddToCart(Map<String, String> product) {
-    final name = product["name"] ?? "";
-    final priceText = product["price"] ?? "0";
-
+  int _parsePrice(String priceText) {
     final clean = priceText
         .replaceAll("Rp", "")
         .replaceAll(".", "")
-        .replaceAll(" ", "");
+        .replaceAll(" ", "")
+        .trim();
+    return int.tryParse(clean) ?? 0;
+  }
 
-    final price = int.tryParse(clean) ?? 0;
+  void _handleAddToCart(Map<String, String> product) {
+    final name = product["name"] ?? "";
+    final priceDisplay = product["price"] ?? "Rp 0";
+    final priceValue = _parsePrice(priceDisplay);
+    final availableStock = productStocks[name] ?? 0;
 
-    if (name.isEmpty || price <= 0) return;
+    if (name.isEmpty || priceValue <= 0) return;
+
+    // Cek apakah stok tersedia
+    if (availableStock <= 0) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('Stok $name habis'),
+          backgroundColor: const Color.fromRGBO(212, 24, 61, 1),
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
 
     setState(() {
       final index = items.indexWhere((item) => item.name == name);
+
       if (index == -1) {
-        items.add(CartItem(name: name, quantity: 1, price: price));
-      } else {
-        final item = items[index];
-        items[index] = CartItem(
-          name: item.name,
-          quantity: item.quantity + 1,
-          price: item.price,
+        // Tambah item baru
+        items.add(
+          CartItem(
+            name: name,
+            quantity: 1,
+            priceDisplay: priceDisplay,
+            priceValue: priceValue,
+            availableStock: availableStock,
+          ),
         );
+      } else {
+        // Item sudah ada, cek apakah masih bisa tambah
+        final existingItem = items[index];
+        if (existingItem.quantity < availableStock) {
+          items[index] = CartItem(
+            name: existingItem.name,
+            quantity: existingItem.quantity + 1,
+            priceDisplay: existingItem.priceDisplay,
+            priceValue: existingItem.priceValue,
+            availableStock: availableStock,
+          );
+        } else {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('Stok $name tidak mencukupi'),
+              backgroundColor: const Color.fromRGBO(245, 158, 11, 1),
+              duration: const Duration(seconds: 2),
+            ),
+          );
+        }
       }
     });
   }
@@ -57,22 +157,40 @@ class _CashierPageState extends State<CashierPage> {
   void _onIncrease(int index) {
     setState(() {
       final item = items[index];
-      items[index] = CartItem(
-        name: item.name,
-        quantity: item.quantity + 1,
-        price: item.price,
-      );
+      final availableStock = productStocks[item.name] ?? 0;
+
+      if (item.quantity < availableStock) {
+        items[index] = CartItem(
+          name: item.name,
+          quantity: item.quantity + 1,
+          priceDisplay: item.priceDisplay,
+          priceValue: item.priceValue,
+          availableStock: availableStock,
+        );
+      } else {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('Stok ${item.name} maksimal ${availableStock} Box'),
+            backgroundColor: const Color.fromRGBO(245, 158, 11, 1),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
     });
   }
 
   void _onDecrease(int index) {
     setState(() {
       final item = items[index];
+      final availableStock = productStocks[item.name] ?? 0;
+
       if (item.quantity > 1) {
         items[index] = CartItem(
           name: item.name,
           quantity: item.quantity - 1,
-          price: item.price,
+          priceDisplay: item.priceDisplay,
+          priceValue: item.priceValue,
+          availableStock: availableStock,
         );
       } else {
         items.removeAt(index);
@@ -113,15 +231,11 @@ class _CashierPageState extends State<CashierPage> {
 
               const SizedBox(height: 18),
 
-              CustomerInfoCard(
-                onDiscountChanged: _updateDiscountRate,
-              ),
+              CustomerInfoCard(onDiscountChanged: _updateDiscountRate),
 
               const SizedBox(height: 18),
 
-              CashierProduk(
-                onAddToCart: _handleAddToCart,
-              ),
+              CashierProduk(onAddToCart: _handleAddToCart),
 
               const SizedBox(height: 18),
 

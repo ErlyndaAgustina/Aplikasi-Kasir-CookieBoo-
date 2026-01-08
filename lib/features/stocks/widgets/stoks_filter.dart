@@ -39,7 +39,7 @@ class StockFilters extends StatelessWidget {
                 ),
                 const SizedBox(width: 10),
                 Text(
-                  "$lowStockCount Produk Stok Rendah",
+                  "$lowStockCount Produk Stok Habis",
                   style: const TextStyle(
                     fontFamily: 'Poppins',
                     fontSize: 14,

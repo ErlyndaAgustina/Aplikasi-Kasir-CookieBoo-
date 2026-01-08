@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
+import 'package:intl/date_symbol_data_local.dart';
 
 class CustomerInfoCard extends StatefulWidget {
   final ValueChanged<double> onDiscountChanged;
@@ -14,7 +17,138 @@ class CustomerInfoCard extends StatefulWidget {
 
 class _CustomerInfoCardState extends State<CustomerInfoCard> {
   bool isMembership = true;
-  String? selectedMember;
+  String? selectedMemberId;
+  List<Map<String, dynamic>> memberList = [];
+  bool isLoadingMembers = true;
+
+  final TextEditingController _nonMemberNameController = TextEditingController();
+
+  final supabase = Supabase.instance.client;
+
+  @override
+  void initState() {
+    super.initState();
+    initializeDateFormatting('id_ID');
+    _loadMembers();
+
+    supabase
+        .channel('public:pelanggan')
+        .onPostgresChanges(
+          event: PostgresChangeEvent.all,
+          schema: 'public',
+          table: 'pelanggan',
+          callback: (payload) {
+            if (mounted) {
+              _loadMembers();
+            }
+          },
+        )
+        .subscribe();
+  }
+
+  @override
+  void dispose() {
+    _nonMemberNameController.dispose();
+    supabase.removeAllChannels();
+    super.dispose();
+  }
+
+  Future<void> _loadMembers() async {
+  if (!mounted) return;
+  setState(() => isLoadingMembers = true);
+
+  try {
+    final response = await supabase
+        .from('pelanggan')
+        .select('id, nama, membership')
+        .inFilter('membership', ['silver', 'gold', 'platinum'])
+        .order('nama', ascending: true);
+
+    if (mounted) {
+      setState(() {
+        memberList = List<Map<String, dynamic>>.from(response);
+        isLoadingMembers = false;
+      });
+    }
+  } catch (e) {
+    debugPrint('Error loading pelanggan: $e');
+    if (mounted) setState(() => isLoadingMembers = false);
+  }
+}
+
+  String _getMembershipLabel(String? membership) {
+    switch (membership) {
+      case 'platinum':
+        return "Platinum (20% diskon)";
+      case 'gold':
+        return "Gold (15% diskon)";
+      case 'silver':
+        return "Silver (10% diskon)";
+      default:
+        return "";
+    }
+  }
+
+  double _getDiscountRate(String? membership) {
+    switch (membership) {
+      case 'platinum':
+        return 0.20;
+      case 'gold':
+        return 0.15;
+      case 'silver':
+        return 0.10;
+      default:
+        return 0.0;
+    }
+  }
+
+  void _applyDiscount(String? memberId) {
+    if (memberId == null) {
+      widget.onDiscountChanged(0.0);
+      return;
+    }
+
+    final selected = memberList.firstWhere(
+      (m) => m['id'] == memberId,
+      orElse: () => <String, dynamic>{},
+    );
+
+    final membership = selected['membership'] as String?;
+    final rate = _getDiscountRate(membership);
+    widget.onDiscountChanged(rate);
+  }
+
+  Future<String?> saveNonMemberToSupabase() async {
+    final name = _nonMemberNameController.text.trim();
+    if (name.isEmpty) return null;
+
+    try {
+      final response = await supabase.from('pelanggan').insert({
+        'nama': name,
+        'membership': 'non_member',
+      }).select('id');
+
+      return response[0]['id'] as String?;
+    } catch (e) {
+      debugPrint('Error saving non-member: $e');
+      return null;
+    }
+  }
+
+  String _getCurrentDateTimeInfo() {
+    final now = DateTime.now();
+    final dayFormat = DateFormat('EEEE', 'id_ID');
+    final dateFormat = DateFormat('dd MMM yyyy', 'id_ID');
+    final timeFormat = DateFormat('HH:mm');
+
+    final day = dayFormat.format(now);
+    final date = dateFormat.format(now);
+    final time = timeFormat.format(now);
+
+    const queueNumber = "001"; // TODO: Implementasi antrian otomatis nanti
+
+    return "$day, $date • $time • Antrian: $queueNumber";
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -55,11 +189,11 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
           ),
           const SizedBox(height: 2),
           Text(
-            "Rabu, 16 Okt 2025  •  09:30  •  Antrian: 001",
-            style: TextStyle(
+            _getCurrentDateTimeInfo(),
+            style: const TextStyle(
               fontFamily: 'Poppins',
               fontSize: 13,
-              color: const Color.fromRGBO(107, 79, 63, 1),
+              color: Color.fromRGBO(107, 79, 63, 1),
               fontWeight: FontWeight.w700,
             ),
           ),
@@ -84,12 +218,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                         setState(() {
                           isMembership = true;
                         });
-
-                        if (selectedMember == null) {
-                          widget.onDiscountChanged(0.0);
-                        } else {
-                          _applyDiscountForMember(selectedMember!);
-                        }
+                        _applyDiscount(selectedMemberId);
                       },
                     ),
                     _buildTabButton(
@@ -98,7 +227,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                       onTap: () {
                         setState(() {
                           isMembership = false;
-                          selectedMember = null;
+                          selectedMemberId = null;
                         });
                         widget.onDiscountChanged(0.0);
                       },
@@ -110,10 +239,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
 
                 if (isMembership)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 12,
-                      vertical: 0,
-                    ),
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 0),
                     decoration: BoxDecoration(
                       color: Colors.white,
                       borderRadius: BorderRadius.circular(15),
@@ -123,7 +249,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                     ),
                     child: DropdownButtonHideUnderline(
                       child: DropdownButton<String>(
-                        value: selectedMember,
+                        value: selectedMemberId,
                         hint: const Text(
                           "Pilih pelanggan membership...",
                           style: TextStyle(
@@ -135,36 +261,23 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
                         ),
                         isExpanded: true,
                         icon: const Icon(Icons.keyboard_arrow_down),
-                        items: const [
-                          DropdownMenuItem(
-                            value: "Ajeng",
-                            child: Text(
-                              "Ajeng Chalista - Platinum (20% diskon)",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: "Abir",
-                            child: Text(
-                              "Abir Fauziah Agung - Gold (15% diskon)",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                          DropdownMenuItem(
-                            value: "Dewangga",
-                            child: Text(
-                              "Dewangga Putra - Silver (10% diskon)",
-                              overflow: TextOverflow.ellipsis,
-                            ),
-                          ),
-                        ],
+                        items: isLoadingMembers
+                            ? [const DropdownMenuItem(value: null, child: Text("Memuat pelanggan..."))]
+                            : memberList.map((member) {
+                                final nama = member['nama'] as String;
+                                final membership = member['membership'] as String;
+                                final label = _getMembershipLabel(membership);
+                                return DropdownMenuItem(
+                                  value: member['id'] as String,
+                                  child: Text(
+                                    "$nama - $label",
+                                    overflow: TextOverflow.ellipsis,
+                                  ),
+                                );
+                              }).toList(),
                         onChanged: (val) {
-                          setState(() => selectedMember = val);
-                          if (val != null) {
-                            _applyDiscountForMember(val);
-                          } else {
-                            widget.onDiscountChanged(0.0);
-                          }
+                          setState(() => selectedMemberId = val);
+                          _applyDiscount(val);
                         },
                       ),
                     ),
@@ -172,6 +285,7 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
 
                 if (!isMembership)
                   TextField(
+                    controller: _nonMemberNameController,
                     decoration: InputDecoration(
                       enabledBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(15),
@@ -208,18 +322,6 @@ class _CustomerInfoCardState extends State<CustomerInfoCard> {
         ],
       ),
     );
-  }
-
-  void _applyDiscountForMember(String memberKey) {
-    double rate = 0.0;
-    if (memberKey == "Ajeng") {
-      rate = 0.20;
-    } else if (memberKey == "Abir") {
-      rate = 0.15;
-    } else if (memberKey == "Dewangga") {
-      rate = 0.10;
-    }
-    widget.onDiscountChanged(rate);
   }
 
   Widget _buildTabButton({

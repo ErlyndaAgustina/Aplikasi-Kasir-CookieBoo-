@@ -1,13 +1,13 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/cupertino.dart';
-
-import 'edit_stock.dart';
+import 'edit_stock.dart'; // UpdateStokPopup ada di file ini
 
 class StockItem extends StatelessWidget {
   final String name;
   final int stock;
   final int minStock;
   final String category;
+  final String productId; // ID produk dari Supabase (uuid sebagai String)
 
   const StockItem({
     super.key,
@@ -15,6 +15,7 @@ class StockItem extends StatelessWidget {
     required this.stock,
     required this.minStock,
     required this.category,
+    required this.productId, // ← diperbaiki, hanya satu kali
   });
 
   Color get statusColor {
@@ -99,7 +100,7 @@ class StockItem extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 3),
               decoration: BoxDecoration(
-                color: Color.fromRGBO(217, 160, 91, 1),
+                color: const Color.fromRGBO(217, 160, 91, 1),
                 borderRadius: BorderRadius.circular(15),
               ),
               child: Text(
@@ -133,11 +134,21 @@ class StockItem extends StatelessWidget {
               ),
               alignment: Alignment.center,
               child: GestureDetector(
-                onTap: () {
-                  showDialog(
+                onTap: () async {
+                  final result = await showDialog<bool>(
                     context: context,
-                    builder: (_) => const UpdateStokPopup(),
+                    builder: (_) => UpdateStokPopup(
+                      namaProduk: name,
+                      stokSaatIni: stock,
+                      stokMinimum: minStock,
+                      productId: productId, // ← sekarang benar, pakai field yang ada
+                    ),
                   );
+
+                  if (result == true) {
+                    // Tempat untuk refresh data di parent widget
+                    // Contoh: panggil setState() di parent, atau trigger refresh dengan Provider/Bloc/Riverpod
+                  }
                 },
                 child: Container(
                   padding: const EdgeInsets.symmetric(
@@ -145,9 +156,7 @@ class StockItem extends StatelessWidget {
                     vertical: 6,
                   ),
                   decoration: BoxDecoration(
-                    color: const Color(
-                      0xFFD9A05B,
-                    ),
+                    color: const Color(0xFFD9A05B),
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: const Row(

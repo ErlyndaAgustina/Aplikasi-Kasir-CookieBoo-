@@ -1,7 +1,32 @@
 import 'package:flutter/material.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class StockHistoryCard extends StatelessWidget {
-  const StockHistoryCard({super.key});
+  StockHistoryCard({super.key});
+
+  final supabase = Supabase.instance.client;
+
+  Future<List<Map<String, dynamic>>> fetchRiwayatStok() async {
+    final data = await supabase
+        .from('riwayat_stok')
+        .select(''' 
+        id,
+        produk_id,
+        kasir_id,
+        tipe_perubahan,
+        jumlah_perubahan,
+        stok_sebelum,
+        stok_sesudah,
+        keterangan,
+        created_at,
+        produk:produk_id (nama_produk),
+        profile:kasir_id (name)
+      ''')
+        .order('created_at', ascending: false)
+        .limit(10);
+
+    return List<Map<String, dynamic>>.from(data);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -31,44 +56,108 @@ class StockHistoryCard extends StatelessWidget {
           ),
           Divider(color: Color.fromRGBO(255, 227, 191, 1), thickness: 1.5),
           const SizedBox(height: 8),
-          _buildItem(
-            title: 'Choco Chip Cookies',
-            date: '18 Okt 2025  ⦁  09.00',
-            badgeColor: Color.fromRGBO(35, 65, 159, 1),
-            badgeIcon: Icons.north_east,
-            badgeText: 'Stok Masuk',
-            qtyText: '+20 box',
-            qtyColor: Color.fromRGBO(35, 65, 159, 1),
-            desc: 'Restock dari dapur',
-            admin: 'Erlynda Agustina',
-          ),
-          const Divider(height: 32),
-          _buildItem(
-            title: 'Monster Cookies',
-            date: '18 Okt 2025  ⦁  09.30',
-            badgeColor: Color.fromRGBO(212, 24, 61, 1),
-            badgeIcon: Icons.south_west,
-            badgeText: 'Stok Keluar',
-            qtyText: '-20 box',
-            qtyColor: Color.fromRGBO(212, 24, 61, 1),
-            desc: 'Penjualan ke Ajeng (Member Platinum)',
-            admin: 'Kasir Hanzel Frey',
-          ),
-          const Divider(height: 32),
-          _buildItem(
-            title: 'Choco Marsmellow',
-            date: '18 Okt 2025  ⦁  10.30',
-            badgeColor: Color.fromRGBO(212, 24, 61, 1),
-            badgeIcon: Icons.south_west,
-            badgeText: 'Stok Keluar',
-            qtyText: '-20 box',
-            qtyColor: Color.fromRGBO(212, 24, 61, 1),
-            desc: 'Produk rusak/kadaluarsa',
-            admin: 'Erlynda Agustina',
+          FutureBuilder<List<Map<String, dynamic>>>(
+            future: fetchRiwayatStok(),
+            builder: (context, snapshot) {
+              if (snapshot.connectionState == ConnectionState.waiting) {
+                return const Center(child: CircularProgressIndicator());
+              }
+
+              if (snapshot.hasError) {
+                return const Center(
+                  child: Text(
+                    'Gagal memuat riwayat stok',
+                    style: TextStyle(color: Colors.red),
+                  ),
+                );
+              }
+
+              if (!snapshot.hasData || snapshot.data!.isEmpty) {
+                return const Center(
+                  child: Text(
+                    'Belum ada riwayat perubahan stok',
+                    style: TextStyle(color: Color.fromRGBO(124, 124, 126, 1)),
+                  ),
+                );
+              }
+
+              final riwayatList = snapshot.data!;
+
+              return Column(
+                children: riwayatList.asMap().entries.map((entry) {
+                  final index = entry.key;
+                  final data = entry.value;
+
+                  final produk = data['produk'] as Map<String, dynamic>?;
+                  final profile = data['profile'] as Map<String, dynamic>?;
+
+                  final String title =
+                      produk?['nama_produk'] ?? 'Produk Tidak Diketahui';
+
+                  final DateTime dateTime = DateTime.parse(data['created_at']);
+                  final String date =
+                      '${dateTime.day} ${_getMonthName(dateTime.month)} ${dateTime.year}  ⦁  ${dateTime.hour.toString().padLeft(2, '0')}.${dateTime.minute.toString().padLeft(2, '0')}';
+
+                  final String tipe = data['tipe_perubahan'];
+                  final int jumlah = data['jumlah_perubahan'];
+                  final String keterangan = data['keterangan'] ?? '-';
+                  final String admin = profile?['name'] ?? 'Unknown';
+
+                  final bool isMasuk = tipe == 'penambahan';
+                  final Color badgeColor = isMasuk
+                      ? const Color.fromRGBO(35, 65, 159, 1)
+                      : const Color.fromRGBO(212, 24, 61, 1);
+                  final IconData badgeIcon = isMasuk
+                      ? Icons.north_east
+                      : Icons.south_west;
+                  final String badgeText = isMasuk
+                      ? 'Stok Masuk'
+                      : 'Stok Keluar';
+                  final String qtyText = '${isMasuk ? '+' : '-'}$jumlah box';
+                  final Color qtyColor = badgeColor;
+
+                  final Widget item = _buildItem(
+                    title: title,
+                    date: date,
+                    badgeColor: badgeColor,
+                    badgeIcon: badgeIcon,
+                    badgeText: badgeText,
+                    qtyText: qtyText,
+                    qtyColor: qtyColor,
+                    desc: keterangan,
+                    admin: admin,
+                  );
+
+                  // Tambahkan divider kecuali untuk item terakhir
+                  if (index < riwayatList.length - 1) {
+                    return Column(children: [item, const Divider(height: 32)]);
+                  }
+                  return item;
+                }).toList(),
+              );
+            },
           ),
         ],
       ),
     );
+  }
+
+  String _getMonthName(int month) {
+    const months = [
+      'Jan',
+      'Feb',
+      'Mar',
+      'Apr',
+      'Mei',
+      'Jun',
+      'Jul',
+      'Ags',
+      'Sep',
+      'Okt',
+      'Nov',
+      'Des',
+    ];
+    return months[month - 1];
   }
 
   Widget _buildItem({
@@ -103,11 +192,18 @@ class StockHistoryCard extends StatelessWidget {
                   const SizedBox(height: 3),
                   Row(
                     children: [
-                      const Icon(Icons.access_time, size: 16, color: Color.fromRGBO(124, 124, 126, 1)),
+                      const Icon(
+                        Icons.access_time,
+                        size: 16,
+                        color: Color.fromRGBO(124, 124, 126, 1),
+                      ),
                       const SizedBox(width: 4),
                       Text(
                         date,
-                        style: const TextStyle(fontSize: 13, color: Color.fromRGBO(124, 124, 126, 1)),
+                        style: const TextStyle(
+                          fontSize: 13,
+                          color: Color.fromRGBO(124, 124, 126, 1),
+                        ),
                       ),
                     ],
                   ),
@@ -123,12 +219,22 @@ class StockHistoryCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   Text(
                     desc,
-                    style: const TextStyle(fontFamily: 'Poppins', fontSize: 12, color: Color.fromRGBO(139, 111, 71, 1), fontWeight: FontWeight.w600),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 12,
+                      color: Color.fromRGBO(139, 111, 71, 1),
+                      fontWeight: FontWeight.w600,
+                    ),
                   ),
                   const SizedBox(height: 4),
                   Text(
                     'Admin: $admin',
-                    style: const TextStyle(fontFamily: 'Poppins', fontSize: 13, color: Color.fromRGBO(133, 131, 145, 1), fontWeight: FontWeight.w500),
+                    style: const TextStyle(
+                      fontFamily: 'Poppins',
+                      fontSize: 13,
+                      color: Color.fromRGBO(133, 131, 145, 1),
+                      fontWeight: FontWeight.w500,
+                    ),
                   ),
                 ],
               ),
@@ -147,7 +253,11 @@ class StockHistoryCard extends StatelessWidget {
                   const SizedBox(width: 4),
                   Text(
                     badgeText,
-                    style: TextStyle(fontSize: 12, fontWeight: FontWeight.w600, color: badgeColor),
+                    style: TextStyle(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: badgeColor,
+                    ),
                   ),
                 ],
               ),

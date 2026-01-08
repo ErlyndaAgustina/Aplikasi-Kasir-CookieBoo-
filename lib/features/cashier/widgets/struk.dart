@@ -1,7 +1,30 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-void showPaymentReceipt(BuildContext context) {
+class CartItem {
+  final String name;
+  final int quantity;
+  final String priceDisplay;
+  final int priceValue;
+
+  CartItem({
+    required this.name,
+    required this.quantity,
+    required this.priceDisplay,
+    required this.priceValue,
+  });
+
+  int get total => priceValue * quantity;
+}
+
+void showPaymentReceipt(
+  BuildContext context, {
+  required List<CartItem> items,
+  required double discountRate,
+  required String paymentMethod,
+  required String customerName,
+  String? customerMembership, // null jika non-member
+}) {
   showModalBottomSheet(
     context: context,
     isScrollControlled: true,
@@ -10,23 +33,70 @@ void showPaymentReceipt(BuildContext context) {
       borderRadius: BorderRadius.vertical(top: Radius.circular(22)),
     ),
     builder: (context) {
-      return const PaymentReceiptPopup();
+      return PaymentReceiptPopup(
+        items: items,
+        discountRate: discountRate,
+        paymentMethod: paymentMethod,
+        customerName: customerName,
+        customerMembership: customerMembership,
+      );
     },
   );
 }
 
 class PaymentReceiptPopup extends StatelessWidget {
-  const PaymentReceiptPopup({super.key});
+  final List<CartItem> items;
+  final double discountRate;
+  final String paymentMethod;
+  final String customerName;
+  final String? customerMembership;
+
+  const PaymentReceiptPopup({
+    super.key,
+    required this.items,
+    required this.discountRate,
+    required this.paymentMethod,
+    required this.customerName,
+    this.customerMembership,
+  });
 
   @override
   Widget build(BuildContext context) {
     final media = MediaQuery.of(context);
     final maxHeight = media.size.height * 0.9;
+
     final currency = NumberFormat.currency(
       locale: 'id_ID',
       symbol: 'Rp ',
       decimalDigits: 0,
     );
+
+    // Hitung nilai transaksi
+    final subtotal = items.fold<int>(0, (sum, item) => sum + item.total);
+    final discountValue = (subtotal * discountRate).round();
+    final afterDiscount = subtotal - discountValue;
+    final tax = (afterDiscount * 0.10).round();
+    final total = afterDiscount + tax;
+    final now = DateTime.now();
+    final dateFormat = DateFormat('dd MMM yyyy, HH.mm', 'id_ID');
+    final transactionId = "INV-${now.year}${now.month.toString().padLeft(2, '0')}${now.day.toString().padLeft(2, '0')}-${(items.length + 1).toString().padLeft(3, '0')}";
+    const queueNumber = "001";
+
+Widget? membershipBadge;
+if (customerMembership != null && customerMembership != 'non_member') {
+  final String membership = customerMembership!;
+
+  final String tierDisplay = membership[0].toUpperCase() + membership.substring(1);
+  final bool isBlueBadge = membership == 'platinum' || membership == 'gold';
+
+  membershipBadge = Row(
+    children: [
+      _badge("Membership"),
+      const SizedBox(width: 6),
+      _badge(tierDisplay, isBlue: isBlueBadge),
+    ],
+  );
+}
 
     return SafeArea(
       child: Padding(
@@ -71,26 +141,20 @@ class PaymentReceiptPopup extends StatelessWidget {
 
                 _rowTwoColumn(
                   leftTitle: "Nomor Transaksi",
-                  leftValue: "INV-001",
+                  leftValue: transactionId,
                   rightTitle: "Tanggal & Waktu",
-                  rightValue: "18 Okt 2025, 09.30",
+                  rightValue: dateFormat.format(now),
                 ),
 
                 const SizedBox(height: 12),
 
                 _rowTwoColumn(
                   leftTitle: "Nomor Antrian",
-                  leftValue: "001",
+                  leftValue: queueNumber,
                   isBadgeLeft: true,
                   rightTitle: "Pelanggan",
-                  rightValue: "Ajeng Chailista",
-                  extraRightBadge: Row(
-                    children: [
-                      _badge("Membership"),
-                      const SizedBox(width: 6),
-                      _badge("Platinum", isBlue: true),
-                    ],
-                  ),
+                  rightValue: customerName,
+                  extraRightBadge: membershipBadge,
                 ),
 
                 const SizedBox(height: 22),
@@ -99,28 +163,37 @@ class PaymentReceiptPopup extends StatelessWidget {
 
                 const SizedBox(height: 6),
 
-                _itemRow(
-                  name: "Crumbil Oreo",
-                  desc: "1 × Rp 35.000",
-                  price: currency.format(35000),
-                ),
-                _itemRow(
-                  name: "Cookies & Cream",
-                  desc: "2 × Rp 30.000",
-                  price: currency.format(60000),
-                ),
+                // Daftar pesanan dinamis
+                ...items.map((item) => _itemRow(
+                      name: item.name,
+                      desc: "${item.quantity} × ${item.priceDisplay}",
+                      price: currency.format(item.total),
+                    )),
+
+                if (items.isEmpty)
+                  const Padding(
+                    padding: EdgeInsets.symmetric(vertical: 20),
+                    child: Text(
+                      "Tidak ada pesanan",
+                      style: TextStyle(fontFamily: "Poppins", fontSize: 14),
+                    ),
+                  ),
 
                 const SizedBox(height: 14),
 
-                _priceBreak("Subtotal", currency.format(95000)),
-                _priceBreak("Diskon (20%)", currency.format(4750)),
-                _priceBreak("Tax (10%)", currency.format(9500)),
+                _priceBreak("Subtotal", currency.format(subtotal)),
+                if (discountRate > 0)
+                  _priceBreak(
+                    "Diskon (${(discountRate * 100).toStringAsFixed(0)}%)",
+                    "-${currency.format(discountValue)}",
+                  ),
+                _priceBreak("Tax (10%)", currency.format(tax)),
 
                 const Divider(height: 26),
 
                 _priceBreak(
                   "Total Pembayaran",
-                  currency.format(99750),
+                  currency.format(total),
                   isTotal: true,
                 ),
 
@@ -129,7 +202,10 @@ class PaymentReceiptPopup extends StatelessWidget {
                 _titleSection("Metode Pembayaran"),
                 Align(
                   alignment: Alignment.centerLeft,
-                  child: _badge("Non-Cash", isBlue: true),
+                  child: _badge(
+                    paymentMethod == "cash" ? "Cash" : "Non-Cash",
+                    isBlue: paymentMethod == "non-cash",
+                  ),
                 ),
 
                 const SizedBox(height: 22),
